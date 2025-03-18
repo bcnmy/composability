@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {Storage} from "./Storage.sol";
-import {InputParam, OutputParam, Constraint, ConstraintType, InputParamFetcherType, OutputParamFetcherType} from "contracts/types/ComposabilityDataTypes.sol";
+import {InputParam, OutputParam, Constraint, ConstraintType, InputParamFetcherType, OutputParamFetcherType} from "./types/ComposabilityDataTypes.sol";
 // Library for composable execution handling
 library ComposableExecutionLib {
 
