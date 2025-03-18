@@ -1,0 +1,11 @@
+[profile.default]
+src = "contracts"
+out = "out"
+solc = "0.8.27"
+evm_version = "cancun"           # See https://www.evmdiff.com/features?name=PUSH0&kind=opcode
+#auto_detect_solc = true
+libs = ["node_modules", "lib"]
+via-ir = true
+
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

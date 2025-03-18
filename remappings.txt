@@ -1,0 +1,6 @@
+forge-std/=lib/forge-std/src/
+module-bases/=node_modules/@rhinestone/module-bases/src/
+erc7579/=node_modules/erc7579/src/
+account-abstraction/=node_modules/account-abstraction/contracts/
+solady/=node_modules/solady/src/
+sentinellist/=node_modules/@rhinestone/sentinellist/src/
