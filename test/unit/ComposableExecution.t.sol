@@ -677,7 +677,7 @@ contract ComposableExecutionTest is ComposabilityTestBase {
         if (address(account) == address(mockAccountFallback)) {
             messageValue = valueToSend;
             vm.expectEmit(address(mockAccountFallback));
-            emit MockAccountReceive(valueToSend);
+            emit MockAccountReceive(messageValue);
         }
 
         vm.expectEmit(address(dummyContract));
