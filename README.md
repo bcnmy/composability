@@ -1,6 +1,6 @@
 ## Composability Stack || Smart Contracts
 
-** Smart contracts to unlock composable execution. **
+**Smart contracts to unlock composable execution.**
 
 The composability stack solves this by allowing developers to create dynamic, multi-step transactions entirely from frontend code.
 The smart contracts in this repo handle the composable execution logic allowing developers to avoid any on-chain development and just use SDK to build composable operations.
