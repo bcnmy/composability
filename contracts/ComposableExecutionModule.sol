@@ -35,7 +35,7 @@ contract ComposableExecutionModule is IComposableExecutionModule, IExecutor, ERC
      * @notice Executes a composable transaction with dynamic parameter composition and return value handling
      * @dev As per ERC-7579 account MUST append original msg.sender address to the calldata in a way specified by ERC-2771
      */
-    function executeComposable(ComposableExecution[] calldata executions) external {
+    function executeComposable(ComposableExecution[] calldata executions) external payable {
         // access control
         address sender = _msgSender();
         // in most cases, only first condition (against constant) will be checked
@@ -87,7 +87,7 @@ contract ComposableExecutionModule is IComposableExecutionModule, IExecutor, ERC
 
     /// @dev function to be used as an argument for _executeComposable in case of regular call
     function _executeExecutionCall(ComposableExecution calldata execution, bytes memory composedCalldata) internal returns (bytes[] memory) {
-        return IERC7579Account(msg.sender).executeFromExecutor({
+        return IERC7579Account(msg.sender).executeFromExecutor{value: msg.value}({
                     mode: ModeLib.encodeSimpleSingle(),
                     executionCalldata: ExecutionLib.encodeSingle(execution.to, execution.value, composedCalldata)
                 });

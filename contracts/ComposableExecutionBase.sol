@@ -10,7 +10,7 @@ abstract contract ComposableExecutionBase is IComposableExecution {
     using ComposableExecutionLib for OutputParam[];
 
     /// @dev Override it in the account and introduce additional access control or other checks
-    function executeComposable(ComposableExecution[] calldata executions) external virtual;
+    function executeComposable(ComposableExecution[] calldata executions) external payable virtual;
 
     /// @dev internal function to execute the composable execution flow
     /// First, processes the input parameters and returns the composed calldata
