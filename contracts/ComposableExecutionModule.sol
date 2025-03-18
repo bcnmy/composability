@@ -6,9 +6,9 @@ import {IERC7579Account} from "erc7579/interfaces/IERC7579Account.sol";
 import {ModeLib} from "erc7579/lib/ModeLib.sol";
 import {ExecutionLib} from "erc7579/lib/ExecutionLib.sol";
 import {ERC7579FallbackBase} from "module-bases/ERC7579FallbackBase.sol";
-import {IComposableExecutionModule} from "contracts/interfaces/IComposableExecution.sol";
-import {ComposableExecutionLib} from "contracts/ComposableExecutionLib.sol";
-import {InputParam, OutputParam, ComposableExecution, Constraint, ConstraintType, InputParamFetcherType, OutputParamFetcherType} from "contracts/types/ComposabilityDataTypes.sol";
+import {IComposableExecutionModule} from "./interfaces/IComposableExecution.sol";
+import {ComposableExecutionLib} from "./ComposableExecutionLib.sol";
+import {InputParam, OutputParam, ComposableExecution, Constraint, ConstraintType, InputParamFetcherType, OutputParamFetcherType} from "./types/ComposabilityDataTypes.sol";
 
 /**
  * @title Composable Execution Module: Executor and Fallback
