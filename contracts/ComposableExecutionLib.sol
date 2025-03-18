@@ -10,7 +10,7 @@ library ComposableExecutionLib {
     error Output_StaticCallFailed();
     error InvalidParameterEncoding();
     error InvalidOutputParamFetcherType();
-    error ExecutionFailed();
+    error ComposableExecutionFailed();
     error InvalidConstraintType();
 
     // Process the input parameters and return the composed calldata
@@ -45,7 +45,7 @@ library ComposableExecutionLib {
             }
             (bool success, bytes memory returnData) = contractAddr.staticcall(callData);
             if (!success) {
-                revert ExecutionFailed();
+                revert ComposableExecutionFailed();
             }
             _validateConstraints(returnData, param.constraints);
             return returnData;
