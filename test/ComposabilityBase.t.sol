@@ -47,5 +47,6 @@ contract ComposabilityTestBase is Test {
         vm.deal(address(mockAccountCaller), 100 ether);
         vm.deal(address(mockAccountNonRevert), 100 ether);
         vm.deal(address(mockAccount), 100 ether);
+        vm.deal(address(ENTRYPOINT_V07_ADDRESS), 100 ether);
     }
 }

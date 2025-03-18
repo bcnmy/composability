@@ -24,6 +24,8 @@ contract ComposableExecutionModule is IComposableExecutionModule, IExecutor, ERC
 
     error OnlyEntryPointOrAccount();
     error ZeroAddressNotAllowed();
+    error FailedToReturnMsgValue();
+
     /// @notice Mapping of smart account addresses to the EP address
     mapping(address => address) private entryPoints;
 
@@ -33,7 +35,10 @@ contract ComposableExecutionModule is IComposableExecutionModule, IExecutor, ERC
 
     /**
      * @notice Executes a composable transaction with dynamic parameter composition and return value handling
+     * @dev To be used via fallback() from the account
      * @dev As per ERC-7579 account MUST append original msg.sender address to the calldata in a way specified by ERC-2771
+     * @dev Returns the msg.value back to the sender (account) if any. This is done because in most cases the SA.fallback
+     * forwards value to this module. This allows SA receiving value along with the composable execution call processed via fallback.
      */
     function executeComposable(ComposableExecution[] calldata executions) external payable {
         // access control
@@ -43,7 +48,7 @@ contract ComposableExecutionModule is IComposableExecutionModule, IExecutor, ERC
         require(sender == ENTRY_POINT_V07_ADDRESS || 
                 sender == entryPoints[msg.sender] || 
                 sender == msg.sender, OnlyEntryPointOrAccount());
-
+        _returnMsgValue();
         _executeComposable(executions, msg.sender, _executeExecutionCall);
     }
 
@@ -87,7 +92,7 @@ contract ComposableExecutionModule is IComposableExecutionModule, IExecutor, ERC
 
     /// @dev function to be used as an argument for _executeComposable in case of regular call
     function _executeExecutionCall(ComposableExecution calldata execution, bytes memory composedCalldata) internal returns (bytes[] memory) {
-        return IERC7579Account(msg.sender).executeFromExecutor{value: msg.value}({
+        return IERC7579Account(msg.sender).executeFromExecutor({
                     mode: ModeLib.encodeSimpleSingle(),
                     executionCalldata: ExecutionLib.encodeSingle(execution.to, execution.value, composedCalldata)
                 });
@@ -158,5 +163,13 @@ contract ComposableExecutionModule is IComposableExecutionModule, IExecutor, ERC
             returndatacopy(o, 0x00, returndatasize()) // Copy the returndata.
             mstore(0x40, add(o, returndatasize())) // Allocate the memory.
         } 
+    }
+
+    // Returns the msg.value back to the sender (account)
+    function _returnMsgValue() internal {
+        if (msg.value > 0) {
+            (bool success, ) = payable(msg.sender).call{value: msg.value}("");
+            require(success, FailedToReturnMsgValue());
+        }
     }
 }

@@ -672,6 +672,14 @@ contract ComposableExecutionTest is ComposabilityTestBase {
         });
 
         uint256 expectedToStake = input1 + 1;
+        uint256 messageValue;
+
+        if (address(account) == address(mockAccountFallback)) {
+            messageValue = valueToSend;
+            vm.expectEmit(address(mockAccountFallback));
+            emit MockAccountReceive(valueToSend);
+        }
+
         vm.expectEmit(address(dummyContract));
         // swap emits input params
         emit Uint256Emitted2(input1, input2);
@@ -680,7 +688,8 @@ contract ComposableExecutionTest is ComposabilityTestBase {
         // stake emits input params: first param is from swap, second param is from getFoo which is just input1
         emit Uint256Emitted2(expectedToStake, input1);
         emit Received(valueToSend);
-        IComposableExecution(address(account)).executeComposable(executions);
+
+        IComposableExecution(address(account)).executeComposable{value: messageValue}(executions);
 
         //check storage slots
         bytes32 storedValueA = storageContract.readStorage(namespace, SLOT_A_0);
