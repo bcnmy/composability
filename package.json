@@ -1,5 +1,5 @@
 {
-  "name": "composability",
+  "name": "@biconomy/composability",
   "version": "0.0.1",
   "description": "Biconomy composability stack. Smart contracts to unlock composable execution",
   "main": "index.js",
