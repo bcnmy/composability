@@ -1,11 +1,38 @@
 [profile.default]
-src = "contracts"
-out = "out"
-solc = "0.8.27"
-evm_version = "cancun"           # See https://www.evmdiff.com/features?name=PUSH0&kind=opcode
-#auto_detect_solc = true
-libs = ["node_modules", "lib"]
-via-ir = true
+  auto_detect_solc = false
+  block_timestamp = 1_680_220_800 # March 31, 2023 at 00:00 GMT
+  bytecode_hash = "none"
+  evm_version = "cancun"           # See https://www.evmdiff.com/features?name=PUSH0&kind=opcode
+  fuzz = { runs = 1_000 }
+  via-ir = true
+  gas_reports = ["*"]
+  optimizer = true
+  optimizer_runs = 9999
+  out = "out"
+  script = "scripts"
+  solc = "0.8.27"
+  src = "contracts"
+  test = "test"
+  cache_path  = "cache_forge"
+  libs = ["node_modules", "lib"]
+  fs_permissions = [{ access = "read", path = "scripts/bash-deploy/artifacts"}]
+
+[profile.ci]
+  fuzz = { runs = 10_000 }
+  verbosity = 4
+
+[profile.coverage]
+  via-ir = false
+
+[fmt]
+  bracket_spacing = true
+  int_types = "long"
+  line_length = 160
+  multiline_func_header = "all"
+  number_underscore = "thousands"
+  quote_style = "double"
+  tab_width = 4
+  wrap_comments = true
 
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
