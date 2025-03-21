@@ -84,7 +84,8 @@ contract DummyContract {
         emit BytesEmitted(dynamicValue);
     }
 
-    function acceptStruct(MockSwapStruct memory swapStruct) external {
+    function acceptStruct(uint256 someValue, MockSwapStruct memory swapStruct) external {
+        emit Uint256Emitted(someValue);
         emit Uint256Emitted(swapStruct.amountIn);
         emit Uint256Emitted(swapStruct.amountOutMin);
         emit Uint256Emitted(swapStruct.deadline);

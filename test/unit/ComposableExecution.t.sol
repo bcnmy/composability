@@ -549,6 +549,7 @@ contract ComposableExecutionTest is ComposabilityTestBase {
         vm.expectEmit(address(dummyContract));
         emit Uint256Emitted(1);
         if (address(account) == address(mockAccountFallback)) {
+            vm.expectEmit(address(dummyContract));
             emit Received(valueToSendExecution);
         }
         IComposableExecution(address(account)).executeComposable(executions);
@@ -680,13 +681,17 @@ contract ComposableExecutionTest is ComposabilityTestBase {
             emit MockAccountReceive(messageValue);
         }
 
-        vm.expectEmit(address(dummyContract));
         // swap emits input params
+        vm.expectEmit(address(dummyContract));
         emit Uint256Emitted2(input1, input2);
         // swap emits output param
+        vm.expectEmit(address(dummyContract));
         emit Uint256Emitted(expectedToStake);
         // stake emits input params: first param is from swap, second param is from getFoo which is just input1
+        vm.expectEmit(address(dummyContract));
         emit Uint256Emitted2(expectedToStake, input1);
+        
+        vm.expectEmit(address(dummyContract));
         emit Received(valueToSend);
 
         IComposableExecution(address(account)).executeComposable{value: messageValue}(executions);
@@ -881,8 +886,11 @@ contract ComposableExecutionTest is ComposabilityTestBase {
 
         vm.expectEmit(address(dummyContract));
         emit Uint256Emitted(2517);
+        vm.expectEmit(address(dummyContract));
         emit AddressEmitted(address(dummyContract));
+        vm.expectEmit(address(dummyContract));
         emit Bytes32Emitted(keccak256("DUMMY"));
+        vm.expectEmit(address(dummyContract));
         emit BoolEmitted(true);
 
         IComposableExecution(address(account)).executeComposable(executions);
@@ -943,7 +951,9 @@ contract ComposableExecutionTest is ComposabilityTestBase {
 
         vm.expectEmit(address(dummyContract));
         emit Uint256Emitted(expectedUint256);
+        vm.expectEmit(address(dummyContract));
         emit AddressEmitted(expectedAddress);
+        vm.expectEmit(address(dummyContract));
         emit BytesEmitted(expectedBytes);
         IComposableExecution(address(account)).executeComposable(executions);
 
@@ -969,7 +979,7 @@ contract ComposableExecutionTest is ComposabilityTestBase {
 
         // represent the encoded call to acceptStruct() 
         // as per abi encoding rules
-        InputParam[] memory inputParams = new InputParam[](8);
+        InputParam[] memory inputParams = new InputParam[](7);
 
         // static param
         inputParams[0] = InputParam({
@@ -978,36 +988,31 @@ contract ComposableExecutionTest is ComposabilityTestBase {
             constraints: emptyConstraints
         });
 
-        // offset, as per struct encoding
-        inputParams[1] = InputParam({
-            fetcherType: InputParamFetcherType.RAW_BYTES,
-            paramData: abi.encode(uint256(0x40)),
-            constraints: emptyConstraints
-        });
+        // === start struct ==
 
         // tokenIn
-        inputParams[2] = InputParam({
+        inputParams[1] = InputParam({
             fetcherType: InputParamFetcherType.RAW_BYTES,
             paramData: abi.encode(tokenIn),
             constraints: emptyConstraints
         });
 
         // tokenOut
-        inputParams[3] = InputParam({
+        inputParams[2] = InputParam({
             fetcherType: InputParamFetcherType.RAW_BYTES,
             paramData: abi.encode(tokenOut),
             constraints: emptyConstraints
         });
 
         // amountIn
-        inputParams[4] = InputParam({
+        inputParams[3] = InputParam({
             fetcherType: InputParamFetcherType.STATIC_CALL,
             paramData: abi.encode(address(dummyContract), abi.encodeWithSelector(DummyContract.B.selector, someStaticValue)),
             constraints: constraints
         });
 
         // amountOutMin
-        inputParams[5] = InputParam({
+        inputParams[4] = InputParam({
             fetcherType: InputParamFetcherType.RAW_BYTES,
             paramData: abi.encode(amountOutMin),
             constraints: emptyConstraints
@@ -1015,18 +1020,20 @@ contract ComposableExecutionTest is ComposabilityTestBase {
 
 
         // deadline
-        inputParams[6] = InputParam({
+        inputParams[5] = InputParam({
             fetcherType: InputParamFetcherType.RAW_BYTES,
             paramData: abi.encode(deadline),
             constraints: emptyConstraints
         });
 
         // fee
-        inputParams[7] = InputParam({
+        inputParams[6] = InputParam({
             fetcherType: InputParamFetcherType.RAW_BYTES,
             paramData: abi.encode(fee),
             constraints: emptyConstraints
         });
+
+        // === end struct ==
 
         OutputParam[] memory outputParams = new OutputParam[](0);
 
@@ -1040,11 +1047,18 @@ contract ComposableExecutionTest is ComposabilityTestBase {
         });
 
         vm.expectEmit(address(dummyContract));
+        emit Uint256Emitted(someStaticValue); // someValue
+        vm.expectEmit(address(dummyContract));
         emit Uint256Emitted(someStaticValue*2); //amountIn
+        vm.expectEmit(address(dummyContract));
         emit Uint256Emitted(amountOutMin); //amountOutMin
+        vm.expectEmit(address(dummyContract));
         emit Uint256Emitted(deadline);
+        vm.expectEmit(address(dummyContract));
         emit Uint256Emitted(fee);
+        vm.expectEmit(address(dummyContract));
         emit AddressEmitted(tokenIn);
+        vm.expectEmit(address(dummyContract));
         emit AddressEmitted(tokenOut);
         IComposableExecution(address(account)).executeComposable(executions);
 
