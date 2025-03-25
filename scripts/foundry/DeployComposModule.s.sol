@@ -3,19 +3,21 @@ pragma solidity ^0.8.13;
 
 import {Script, console2} from "forge-std/Script.sol";
 import {DeterministicDeployerLib} from "./utils/DeterministicDeployerLib.sol";
-import { ResolverUID, IRegistryModuleManager } from "./utils/RegisterModule.s.sol";
 
 contract DeployComposableExecutionModule is Script {
 
     uint256 deployed;
     uint256 total;
 
-    address public constant REGISTRY_ADDRESS = 0x000000000069E2a187AEFFb852bF3cCdC95151B2;
+    address public constant MODULE_REGISTRY_ADDRESS = 0x000000000069E2a187AEFFb852bF3cCdC95151B2;
     address public constant EP_V07_ADDRESS = 0x0000000071727De22E5E9d8BAf0edAc6f37da032;
     address constant ATTESTER_ADDRESS = 0xF9ff902Cdde729b47A4cDB55EF16DF3683a04EAB; // Biconomy Attester
 
     // COMPOSABLE EXECUTION MODULE DEPLOYMENT SALTS
-    bytes32 constant COMPOSABLE_EXECUTION_MODULE_SALT = 0x0000000000000000000000000000000000000000d94e66ffea57d5033465d362; // => 
+    bytes32 constant COMPOSABLE_EXECUTION_MODULE_SALT = 0x000000000000000000000000000000000000000025ae50727a43b5038d080986; // => 0x000000009e165Fff03Ca11ddAb083e4429546581;
+    bytes32 constant STORAGE_CONTRACT_SALT = 0x00000000000000000000000000000000000000000e67edf598940102c215065c;// => 0x0000000671eb337E12fe5dB0e788F32e1D71B183; 
+
+    ModuleType[] moduleTypesToAttest;
 
     function setUp() public {}
 
@@ -34,14 +36,30 @@ contract DeployComposableExecutionModule is Script {
         bytes32 salt = COMPOSABLE_EXECUTION_MODULE_SALT;
         bytes memory bytecode = vm.getCode("scripts/bash-deploy/artifacts/ComposableExecutionModule/ComposableExecutionModule.json");
         
-        address nexus = DeterministicDeployerLib.computeAddress(bytecode, salt);
+        address composableExecutionModule = DeterministicDeployerLib.computeAddress(bytecode, salt);
+        uint256 codeSize;
 
         assembly {
-            codeSize := extcodesize(nexus)
+            codeSize := extcodesize(composableExecutionModule)
         }
         checkDeployed(codeSize);
-        console2.log("ComposableExecutionModule Addr: ", nexus, " || >> Code Size: ", codeSize);
+        console2.log("ComposableExecutionModule Addr: ", composableExecutionModule, " || >> Code Size: ", codeSize);
         console2.logBytes32(keccak256(abi.encodePacked(bytecode)));
+
+        // =========== Storage contract ===========
+
+        salt = STORAGE_CONTRACT_SALT;
+        bytes memory storageBytecode = vm.getCode("scripts/bash-deploy/artifacts/Storage/Storage.json");
+
+        address storageContract = DeterministicDeployerLib.computeAddress(storageBytecode, salt);
+        codeSize;
+        assembly {
+            codeSize := extcodesize(storageContract)
+        }
+        checkDeployed(codeSize);
+        console2.log("StorageContract Addr: ", storageContract, " || >> Code Size: ", codeSize);
+        console2.logBytes32(keccak256(abi.encodePacked(storageBytecode)));
+
     }
 
 
@@ -49,7 +67,7 @@ contract DeployComposableExecutionModule is Script {
 // ################## DEPLOYMENT ##################
 // #########################################################################################
 
-    function deployNexus() internal {
+    function deployComposableExecutionModule() internal {
 
         // ======== ComposableExecutionModule ========
 
@@ -73,6 +91,22 @@ contract DeployComposableExecutionModule is Script {
                 _attestModule(composableExecutionModule);
             }
         }
+
+        // =========== Storage contract ===========
+
+        salt = STORAGE_CONTRACT_SALT;
+        bytes memory storageBytecode = vm.getCode("scripts/bash-deploy/artifacts/Storage/Storage.json");
+        address storageContract = DeterministicDeployerLib.computeAddress(storageBytecode, salt);
+
+        assembly {
+            codeSize := extcodesize(storageContract)
+        }
+        if (codeSize > 0) {
+            console2.log("StorageContract already deployed at: ", storageContract, " skipping deployment");
+        } else {
+            storageContract = DeterministicDeployerLib.broadcastDeploy(storageBytecode, salt);
+            console2.log("StorageContract deployed at: ", storageContract);
+        }
     }
 
     function checkDeployed(uint256 codeSize) internal {
@@ -82,29 +116,43 @@ contract DeployComposableExecutionModule is Script {
         total++;
     }
 
-    function _registerModule(address module) internal {
-        bool registryDeployed;
+    function _registerModule(address moduleAddress) internal returns (bool) {
+        IRegistryModuleManager registry = IRegistryModuleManager(MODULE_REGISTRY_ADDRESS);
+
+        uint256 codeSize;
         assembly {
-            registryDeployed := iszero(iszero(extcodesize(REGISTRY_ADDRESS)))
+            codeSize := extcodesize(MODULE_REGISTRY_ADDRESS)
         }
-        if (registryDeployed) {
+        if (codeSize == 0) {
+            console2.log("Module registry not deployed => module not registered on registry");
+            return false;
+        }
+        ResolverUID resolverUID = ResolverUID.wrap(0xdbca873b13c783c0c9c6ddfc4280e505580bf6cc3dac83f8a0f7b44acaafca4f);
+        ModuleRecord memory moduleRecord = registry.findModule(moduleAddress);
+
+        bool isRegistered = ResolverUID.unwrap(moduleRecord.resolverUID) != bytes32(0x0000000000000000000000000000000000000000000000000000000000000000);
+        bool res;
+        if (isRegistered) {
+            console2.log("Module already registered on registry");
+            return true;
+        } else {
             vm.startBroadcast();
-            IRegistryModuleManager registry = IRegistryModuleManager(REGISTRY_ADDRESS);
             try registry.registerModule(
-                ResolverUID.wrap(0xdbca873b13c783c0c9c6ddfc4280e505580bf6cc3dac83f8a0f7b44acaafca4f),
-                module,
+                resolverUID,
+                moduleAddress,
                 hex"",
                 hex""
             ) {
                 console2.log("Module registered on registry");
+                res = true;
             } catch (bytes memory reason) {
-                console2.log("Module registration failed");
+                console2.log("Module not registered on registry: registration failed");
                 console2.logBytes(reason);
+                res = false;
             }
             vm.stopBroadcast();
-        } else {
-            console2.log("Registry not deployed, skipping Module registration => module not registered on registry");
         }
+        return res;
     }
 
     function _attestModule(address moduleAddress) internal returns (bool) {
@@ -185,13 +233,10 @@ contract DeployComposableExecutionModule is Script {
 
 type ResolverUID is bytes32;
 
-interface IRegistryModuleManager {
-    function registerModule(
-        ResolverUID resolverUID,
-        address moduleAddress,
-        bytes calldata metadata,
-        bytes calldata resolverContext
-    ) external;
+struct ModuleRecord {
+    ResolverUID resolverUID; // The unique identifier of the resolver.
+    address sender; // The address of the sender who deployed the contract
+    bytes metadata; // Additional data related to the contract deployment
 }
 
 struct Execution {
