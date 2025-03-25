@@ -48,3 +48,6 @@ cache_forge/solidity-files-cache.json
 
 artifacts
 .states
+
+scripts/bash-deploy/logs/*
+!scripts/bash-deploy/logs/.gitkeep
