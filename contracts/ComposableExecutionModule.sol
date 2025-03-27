@@ -25,6 +25,7 @@ contract ComposableExecutionModule is IComposableExecutionModule, IExecutor, ERC
     error OnlyEntryPointOrAccount();
     error ZeroAddressNotAllowed();
     error FailedToReturnMsgValue();
+    error DelegateCallOnly();
 
     /// @notice Mapping of smart account addresses to the EP address
     mapping(address => address) private entryPoints;
@@ -61,6 +62,7 @@ contract ComposableExecutionModule is IComposableExecutionModule, IExecutor, ERC
 
     /// @notice It doesn't require access control as it is expected to be called by the account itself via .execute(mode = delegatecall)
     function executeComposableDelegateCall(ComposableExecution[] calldata executions) external {
+        require(THIS_ADDRESS != address(this), DelegateCallOnly());
         _executeComposable(executions, address(this), _executeExecutionDelegatecall);
     }
 
