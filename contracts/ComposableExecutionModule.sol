@@ -118,7 +118,7 @@ contract ComposableExecutionModule is IComposableExecutionModule, IExecutor, ERC
         
     /// @dev returns the entry point address
     function getEntryPoint(address account) external view returns (address) {
-        return entryPoints[account] == address(0) ? ENTRY_POINT_V07_ADDRESS : entryPoints[account];
+        return entryPoints[account] == address(0) ? DEFAULT_EP_ADDRESS : entryPoints[account];
     }
 
     /// @dev called when the module is installed
