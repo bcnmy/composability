@@ -16,7 +16,8 @@ import {InputParam, OutputParam, ComposableExecution, Constraint, ConstraintType
  */
 contract ComposableExecutionModule is IComposableExecutionModule, IExecutor, ERC7579FallbackBase {
 
-    address public constant ENTRY_POINT_V07_ADDRESS = 0x0000000071727De22E5E9d8BAf0edAc6f37da032;
+    address private constant ENTRY_POINT_V07_ADDRESS = 0x0000000071727De22E5E9d8BAf0edAc6f37da032;
+    address public immutable DEFAULT_EP_ADDRESS;
     address private immutable THIS_ADDRESS;
 
     using ComposableExecutionLib for InputParam[];
@@ -30,7 +31,12 @@ contract ComposableExecutionModule is IComposableExecutionModule, IExecutor, ERC
     /// @notice Mapping of smart account addresses to the EP address
     mapping(address => address) private entryPoints;
 
-    constructor() {
+    constructor(address _defaultEpAddress) {
+        if (_defaultEpAddress == address(0)) {
+            DEFAULT_EP_ADDRESS = ENTRY_POINT_V07_ADDRESS;
+        } else {
+            DEFAULT_EP_ADDRESS = _defaultEpAddress;
+        }
         THIS_ADDRESS = address(this);
     }
 
@@ -46,7 +52,7 @@ contract ComposableExecutionModule is IComposableExecutionModule, IExecutor, ERC
         address sender = _msgSender();
         // in most cases, only first condition (against constant) will be checked
         // so no extra sloads
-        require(sender == ENTRY_POINT_V07_ADDRESS || 
+        require(sender == DEFAULT_EP_ADDRESS || 
                 sender == entryPoints[msg.sender] || 
                 sender == msg.sender, OnlyEntryPointOrAccount());
         _returnMsgValue();
@@ -114,7 +120,7 @@ contract ComposableExecutionModule is IComposableExecutionModule, IExecutor, ERC
         
     /// @dev returns the entry point address
     function getEntryPoint(address account) external view returns (address) {
-        return entryPoints[account] == address(0) ? ENTRY_POINT_V07_ADDRESS : entryPoints[account];
+        return entryPoints[account] == address(0) ? DEFAULT_EP_ADDRESS : entryPoints[account];
     }
 
     /// @dev called when the module is installed
