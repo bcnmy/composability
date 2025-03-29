@@ -20,7 +20,7 @@ contract ComposabilityTestBase is Test {
     MockAccount internal mockAccount;
 
     function setUp() public virtual {
-        composabilityHandler = new ComposableExecutionModule();
+        composabilityHandler = new ComposableExecutionModule(ENTRYPOINT_V07_ADDRESS);
         mockAccountFallback = new MockAccountFallback({
             _validator: address(0),
             _executor: address(composabilityHandler),

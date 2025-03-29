@@ -22,6 +22,14 @@ Contracts included:
 ## About Composability
 [Biconomy Documentation](https://docs.biconomy.io/composability)
 
+## On storage slots for ComposableExecutionModule
+As can be seen in the Storage.sol file, the actual storage slot used depends on both the `account` address and the `caller` 
+address.
+
+Thus, if the ComposableExecutionModule is used via 'call' flows (as a Fallback and/or Executor module), the storage slot is different compared to the case when the module is used via 'delegatecall' flow.
+
+It is however recommended that the SA is consistent in terms of which flow - `call` or `delegatecall` - it uses.
+
 ## Usage
 
 ### Install
