@@ -65,9 +65,9 @@ contract MockAccountNonRevert is ComposableExecutionBase, IAccount {
         (success, result) = to.call{value: value}(data);
     }
 
-    function executeComposable(ComposableExecution[] calldata executions) external payable override {
+    function executeComposable(ComposableExecution[] calldata cExecutions) external payable override {
         require(msg.sender == ENTRY_POINT_V07 || msg.sender == address(this), OnlyEntryPointOrSelf());
-        _executeComposable(executions);
+        _executeComposable(cExecutions);
     }
 
     function _executeAction(address to, uint256 value, bytes memory data)
