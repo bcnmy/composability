@@ -65,6 +65,21 @@ library ComposableExecutionLib {
             }
             _validateConstraints(returnData, param.constraints);
             return returnData;
+        } else if (param.fetcherType == InputParamFetcherType.BALANCE) {
+            address contractAddr;
+            address account;
+            assembly {
+                contractAddr := shr(96, calldataload(paramData.offset))
+                account := shr(96, calldataload(add(paramData.offset, 0x14)))
+            }
+            uint256 balance;
+            if (contractAddr == address(0)) {
+                balance = account.balance;
+            } else {
+                balance = IERC20(contractAddr).balanceOf(account);
+            }
+            _validateConstraints(abi.encode(balance), param.constraints);
+            return abi.encode(balance);
         } else {
             revert InvalidParameterEncoding();
         }
