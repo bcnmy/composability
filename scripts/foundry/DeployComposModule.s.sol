@@ -14,7 +14,7 @@ contract DeployComposableExecutionModule is Script {
     address constant ATTESTER_ADDRESS = 0xF9ff902Cdde729b47A4cDB55EF16DF3683a04EAB; // Biconomy Attester
 
     // COMPOSABLE EXECUTION MODULE DEPLOYMENT SALTS
-    bytes32 constant COMPOSABLE_EXECUTION_MODULE_SALT = 0x0000000000000000000000000000000000000000dc5d06bf50ebe8014bbee376; //  => 0x000000004E0e920F9F4f7acEA2dA2e79FF9a54b1;
+    bytes32 constant COMPOSABLE_EXECUTION_MODULE_SALT = 0x0000000000000000000000000000000000000000c70592372479f3017cb3143d;// => 0x00000004430bB055dB66eBef6Fe5Ee1DA9668B10
     bytes32 constant STORAGE_CONTRACT_SALT = 0x00000000000000000000000000000000000000000e67edf598940102c215065c;// => 0x0000000671eb337E12fe5dB0e788F32e1D71B183; 
 
     ModuleType[] moduleTypesToAttest;
@@ -35,8 +35,9 @@ contract DeployComposableExecutionModule is Script {
 
         bytes32 salt = COMPOSABLE_EXECUTION_MODULE_SALT;
         bytes memory bytecode = vm.getCode("scripts/bash-deploy/artifacts/ComposableExecutionModule/ComposableExecutionModule.json");
+        bytes memory args = abi.encode(EP_V07_ADDRESS);
         
-        address composableExecutionModule = DeterministicDeployerLib.computeAddress(bytecode, salt);
+        address composableExecutionModule = DeterministicDeployerLib.computeAddress(bytecode, args,salt);
         uint256 codeSize;
 
         assembly {
@@ -44,7 +45,7 @@ contract DeployComposableExecutionModule is Script {
         }
         checkDeployed(codeSize);
         console2.log("ComposableExecutionModule Addr: ", composableExecutionModule, " || >> Code Size: ", codeSize);
-        console2.logBytes32(keccak256(abi.encodePacked(bytecode)));
+        console2.logBytes32(keccak256(abi.encodePacked(bytecode, args)));
 
         // =========== Storage contract ===========
 
@@ -73,7 +74,8 @@ contract DeployComposableExecutionModule is Script {
 
         bytes32 salt = COMPOSABLE_EXECUTION_MODULE_SALT;
         bytes memory bytecode = vm.getCode("scripts/bash-deploy/artifacts/ComposableExecutionModule/ComposableExecutionModule.json");
-        address composableExecutionModule = DeterministicDeployerLib.computeAddress(bytecode, salt);
+        bytes memory args = abi.encode(EP_V07_ADDRESS);
+        address composableExecutionModule = DeterministicDeployerLib.computeAddress(bytecode, args, salt);
         uint256 codeSize;
 
         assembly {
@@ -82,7 +84,7 @@ contract DeployComposableExecutionModule is Script {
         if (codeSize > 0) {
             console2.log("ComposableExecutionModule already deployed at: ", composableExecutionModule, " skipping deployment");
         } else {
-            composableExecutionModule = DeterministicDeployerLib.broadcastDeploy(bytecode, salt);
+            composableExecutionModule = DeterministicDeployerLib.broadcastDeploy(bytecode, args, salt);
             console2.log("ComposableExecutionModule deployed at: ", composableExecutionModule);
             console2.log("Registering ComposableExecutionModule on registry");
             
