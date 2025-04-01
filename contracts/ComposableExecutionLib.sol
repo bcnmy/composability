@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 import {Storage} from "./Storage.sol";
 import {InputParam, OutputParam, Constraint, ConstraintType, InputParamFetcherType, OutputParamFetcherType} from "./types/ComposabilityDataTypes.sol";
+import {Execution} from "erc7579/interfaces/IERC7579Account.sol";
 
 // Library for composable execution handling
 library ComposableExecutionLib {
@@ -18,14 +19,28 @@ library ComposableExecutionLib {
     function processInputs(InputParam[] calldata inputParams, bytes4 functionSig)
         internal
         view
-        returns (bytes memory)
+        returns (Execution memory)
     {
+        address composedTarget;
+        uint256 composedValue;
         bytes memory composedCalldata = abi.encodePacked(functionSig);
         uint256 length = inputParams.length;
         for (uint256 i; i < length; i++) {
-            composedCalldata = bytes.concat(composedCalldata, processInput(inputParams[i]));
+            if (inputParams[i].paramType == InputParamType.TARGET) {
+                composedTarget = abi.decode(inputParams[i].paramData, (address));
+            } else if (inputParams[i].paramType == InputParamType.VALUE) {
+                composedValue = abi.decode(inputParams[i].paramData, (uint256));
+            } else if (inputParams[i].paramType == InputParamType.CALL_DATA) {
+                composedCalldata = bytes.concat(composedCalldata, processInput(inputParams[i]));
+            } else {
+                revert InvalidParameterEncoding();
+            }
         }
-        return composedCalldata;
+        return Execution({
+            target: composedTarget,
+            value: composedValue,
+            callData: composedCalldata
+        });
     }
 
     // Process a single input parameter and return the composed calldata
@@ -50,6 +65,21 @@ library ComposableExecutionLib {
             }
             _validateConstraints(returnData, param.constraints);
             return returnData;
+        } else if (param.fetcherType == InputParamFetcherType.BALANCE) {
+            address contractAddr;
+            address account;
+            assembly {
+                contractAddr := shr(96, calldataload(paramData.offset))
+                account := shr(96, calldataload(add(paramData.offset, 0x14)))
+            }
+            uint256 balance;
+            if (contractAddr == address(0)) {
+                balance = account.balance;
+            } else {
+                balance = IERC20(contractAddr).balanceOf(account);
+            }
+            _validateConstraints(abi.encode(balance), param.constraints);
+            return abi.encode(balance);
         } else {
             revert InvalidParameterEncoding();
         }

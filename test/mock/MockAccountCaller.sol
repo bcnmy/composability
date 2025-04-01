@@ -37,8 +37,8 @@ contract MockAccountCaller is IAccount {
     // naming is to make testing easier.
     // in the wild it should be some open execution function used instead.
     // For example ERC-7579 `execute(mode, executionData)`
-    function executeComposable(ComposableExecution[] calldata executions) external payable {
-        IComposableExecutionModule(address(handler)).executeComposableCall(executions);
+    function executeComposable(ComposableExecution[] calldata cExecutions) external payable {
+        IComposableExecutionModule(address(handler)).executeComposableCall(cExecutions);
     }
 
     function validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash, uint256 missingAccountFunds)

@@ -4,10 +4,10 @@ pragma solidity ^0.8.23;
 import {ComposableExecution} from "../types/ComposabilityDataTypes.sol";
 
 interface IComposableExecution {
-    function executeComposable(ComposableExecution[] calldata executions) external payable;
+    function executeComposable(ComposableExecution[] calldata cExecutions) external payable;
 }
 
 interface IComposableExecutionModule is IComposableExecution {
-    function executeComposableCall(ComposableExecution[] calldata executions) external;
-    function executeComposableDelegateCall(ComposableExecution[] calldata executions) external;
+    function executeComposableCall(ComposableExecution[] calldata cExecutions) external;
+    function executeComposableDelegateCall(ComposableExecution[] calldata cExecutions) external;
 }

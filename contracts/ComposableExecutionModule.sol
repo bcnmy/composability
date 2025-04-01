@@ -2,7 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {IExecutor} from "erc7579/interfaces/IERC7579Module.sol";
-import {IERC7579Account} from "erc7579/interfaces/IERC7579Account.sol";
+import {IERC7579Account, Execution} from "erc7579/interfaces/IERC7579Account.sol";
 import {ModeLib} from "erc7579/lib/ModeLib.sol";
 import {ExecutionLib} from "erc7579/lib/ExecutionLib.sol";
 import {ERC7579FallbackBase} from "module-bases/ERC7579FallbackBase.sol";
@@ -47,7 +47,7 @@ contract ComposableExecutionModule is IComposableExecutionModule, IExecutor, ERC
      * @dev Returns the msg.value back to the sender (account) if any. This is done because in most cases the SA.fallback
      * forwards value to this module. This allows SA receiving value along with the composable execution call processed via fallback.
      */
-    function executeComposable(ComposableExecution[] calldata executions) external payable {
+    function executeComposable(ComposableExecution[] calldata cExecutions) external payable {
         // access control
         address sender = _msgSender();
         // in most cases, only first condition (against constant) will be checked
@@ -56,60 +56,60 @@ contract ComposableExecutionModule is IComposableExecutionModule, IExecutor, ERC
                 sender == entryPoints[msg.sender] || 
                 sender == msg.sender, OnlyEntryPointOrAccount());
         _returnMsgValue();
-        _executeComposable(executions, msg.sender, _executeExecutionCall);
+        _executeComposable(cExecutions, msg.sender, _executeExecutionCall);
     }
 
     /// @notice It doesn't require access control as it is expected to be called by the account itself via .execute()
     /// @dev !!! Attention !!! This function should NEVER be installed to be used via fallback() as it doesn't implement access control
     /// thus it will be callable by any address account.executeComposableCall => fallback() => this.executeComposableCall
-    function executeComposableCall(ComposableExecution[] calldata executions) external { 
-        _executeComposable(executions, msg.sender, _executeExecutionCall);
+    function executeComposableCall(ComposableExecution[] calldata cExecutions) external { 
+        _executeComposable(cExecutions, msg.sender, _executeExecutionCall);
     }
 
     /// @notice It doesn't require access control as it is expected to be called by the account itself via .execute(mode = delegatecall)
-    function executeComposableDelegateCall(ComposableExecution[] calldata executions) external {
+    function executeComposableDelegateCall(ComposableExecution[] calldata cExecutions) external {
         require(THIS_ADDRESS != address(this), DelegateCallOnly());
-        _executeComposable(executions, address(this), _executeExecutionDelegatecall);
+        _executeComposable(cExecutions, address(this), _executeExecutionDelegatecall);
     }
 
     /// @dev internal function to execute the composable execution flow
-    /// @param executions - the composable executions to execute
+    /// @param cExecutions - the composable executions to execute
     /// @param account - the account to execute the composable executions on
     /// @param executeExecutionFunction - the function to execute the composable executions
     function _executeComposable(
-        ComposableExecution[] calldata executions,
+        ComposableExecution[] calldata cExecutions,
         address account,
-        function(ComposableExecution calldata execution, bytes memory composedCalldata) internal returns(bytes[] memory) executeExecutionFunction
+        function(Execution memory execution) internal returns(bytes[] memory) executeExecutionFunction
     ) internal {
         // we can not use erc-7579 batch mode here because we may need to compose
         // the next call in the batch based on the execution result of the previous call
-        uint256 length = executions.length;
+        uint256 length = cExecutions.length;
         for (uint256 i; i < length; i++) {
-            ComposableExecution calldata execution = executions[i];
-            bytes memory composedCalldata = execution.inputParams.processInputs(execution.functionSig);
+            ComposableExecution calldata cExecution = cExecutions[i];
+            Execution memory execution = cExecution.inputParams.processInputs(cExecution.functionSig);
             bytes[] memory returnData; 
-            if (execution.to != address(0)) {
-                returnData = executeExecutionFunction(execution, composedCalldata);
+            if (execution.target != address(0)) {
+                returnData = executeExecutionFunction(execution);
             } else {
                 returnData = new bytes[](1);
                 returnData[0] = "";
             }
-            execution.outputParams.processOutputs(returnData[0], account);
+            cExecution.outputParams.processOutputs(returnData[0], account);
         }
     }
 
     /// @dev function to be used as an argument for _executeComposable in case of regular call
-    function _executeExecutionCall(ComposableExecution calldata execution, bytes memory composedCalldata) internal returns (bytes[] memory) {
+    function _executeExecutionCall(Execution memory execution) internal returns (bytes[] memory) {
         return IERC7579Account(msg.sender).executeFromExecutor({
                     mode: ModeLib.encodeSimpleSingle(),
-                    executionCalldata: ExecutionLib.encodeSingle(execution.to, execution.value, composedCalldata)
+                    executionCalldata: ExecutionLib.encodeSingle(execution.target, execution.value, execution.callData)
                 });
     }
 
     /// @dev function to be used as an argument for _executeComposable in case of delegatecall
-    function _executeExecutionDelegatecall(ComposableExecution calldata execution, bytes memory composedCalldata) internal returns (bytes[] memory returnData) {
+    function _executeExecutionDelegatecall(Execution memory execution) internal returns (bytes[] memory returnData) {
         returnData = new bytes[](1);
-        returnData[0] = _execute(execution.to, execution.value, composedCalldata);
+        returnData[0] = _execute(execution.target, execution.value, execution.callData);
     }
 
     /// @dev sets the entry point for the account
