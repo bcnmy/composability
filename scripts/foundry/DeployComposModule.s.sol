@@ -86,12 +86,13 @@ contract DeployComposableExecutionModule is Script {
         } else {
             composableExecutionModule = DeterministicDeployerLib.broadcastDeploy(bytecode, args, salt);
             console2.log("ComposableExecutionModule deployed at: ", composableExecutionModule);
-            console2.log("Registering ComposableExecutionModule on registry");
+            
+            //console2.log("Registering ComposableExecutionModule on registry");
             
             // Register ComposableExecutionModule on registry and attest
-            if (_registerModule(composableExecutionModule)) {
-                _attestModule(composableExecutionModule);
-            }
+            //if (_registerModule(composableExecutionModule)) {
+            //    _attestModule(composableExecutionModule);
+            //}
         }
 
         // =========== Storage contract ===========
