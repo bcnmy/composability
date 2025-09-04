@@ -8,6 +8,9 @@ import {ComposableExecutionModule} from "contracts/ComposableExecutionModule.sol
 import {MockAccountDelegateCaller} from "./mock/MockAccountDelegateCaller.sol";
 import {MockAccountCaller} from "./mock/MockAccountCaller.sol";
 import {MockAccount} from "test/mock/MockAccount.sol";
+import {Storage} from "../contracts/Storage.sol";
+import {InputParam, Constraint, InputParamType, InputParamFetcherType} from "contracts/types/ComposabilityDataTypes.sol";
+import "./mock/DummyContract.sol";
 
 address constant ENTRYPOINT_V07_ADDRESS = 0x0000000071727De22E5E9d8BAf0edAc6f37da032;
 
@@ -18,6 +21,15 @@ contract ComposabilityTestBase is Test {
     MockAccountCaller internal mockAccountCaller;
     MockAccountNonRevert internal mockAccountNonRevert;
     MockAccount internal mockAccount;
+
+    event MockAccountReceive(uint256 amount);
+    Storage public storageContract;
+    DummyContract public dummyContract;
+
+    bytes32 public constant SLOT_A = keccak256("SLOT_A");
+    bytes32 public constant SLOT_B = keccak256("SLOT_B");
+
+    Constraint[] internal emptyConstraints = new Constraint[](0);
 
     function setUp() public virtual {
         composabilityHandler = new ComposableExecutionModule(ENTRYPOINT_V07_ADDRESS);
@@ -48,5 +60,29 @@ contract ComposabilityTestBase is Test {
         vm.deal(address(mockAccountNonRevert), 100 ether);
         vm.deal(address(mockAccount), 100 ether);
         vm.deal(address(ENTRYPOINT_V07_ADDRESS), 100 ether);
+
+        // Deploy contracts
+        storageContract = new Storage();
+        dummyContract = new DummyContract();
     }
+
+    function _createRawTargetInputParam(address target) internal returns (InputParam memory) {
+        return InputParam({
+            paramType: InputParamType.TARGET,
+            fetcherType: InputParamFetcherType.RAW_BYTES,
+            paramData: abi.encode(target),
+            constraints: emptyConstraints
+        });
+    }
+
+    function _createRawValueInputParam(uint256 value) internal returns (InputParam memory) {
+        return InputParam({
+            paramType: InputParamType.VALUE,
+            fetcherType: InputParamFetcherType.RAW_BYTES,
+            paramData: abi.encode(value),
+            constraints: emptyConstraints
+        });
+    }
+
+
 }

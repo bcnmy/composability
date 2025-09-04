@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.23;
 
 event Uint256Emitted(uint256 value);
 event Uint256Emitted2(uint256 value1, uint256 value2);
@@ -32,6 +32,10 @@ contract DummyContract {
     function B(uint256 value) external pure returns (uint256) {
         // Return the input value multiplied by 2
         return value * 2;
+    }
+
+    function getNativeValue() external pure returns (uint256) {
+        return 10491; // 10491 wei
     }
 
     function getFoo() external view returns (uint256) {
@@ -96,5 +100,9 @@ contract DummyContract {
 
     function revertWithReason(uint256 value) external pure {
         revert DummyRevert(value);
+    }
+
+    function payableEmit() external payable {
+        emit Received(msg.value);
     }
 }

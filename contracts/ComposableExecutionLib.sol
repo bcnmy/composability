@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.23;
 
 import {Storage} from "./Storage.sol";
-import {InputParam, OutputParam, Constraint, ConstraintType, InputParamFetcherType, OutputParamFetcherType} from "./types/ComposabilityDataTypes.sol";
+import {InputParam, OutputParam, Constraint, ConstraintType, InputParamType, InputParamFetcherType, OutputParamFetcherType} from "./types/ComposabilityDataTypes.sol";
 import {Execution} from "erc7579/interfaces/IERC7579Account.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // Library for composable execution handling
 library ComposableExecutionLib {
 
     error ConstraintNotMet(ConstraintType constraintType);
     error Output_StaticCallFailed();
-    error InvalidParameterEncoding();
+    error InvalidParameterEncoding(string message);
     error InvalidOutputParamFetcherType();
     error ComposableExecutionFailed();
     error InvalidConstraintType();
@@ -26,14 +27,18 @@ library ComposableExecutionLib {
         bytes memory composedCalldata = abi.encodePacked(functionSig);
         uint256 length = inputParams.length;
         for (uint256 i; i < length; i++) {
+            bytes memory processedInput = processInput(inputParams[i]);
             if (inputParams[i].paramType == InputParamType.TARGET) {
-                composedTarget = abi.decode(inputParams[i].paramData, (address));
+                if (inputParams[i].fetcherType == InputParamFetcherType.BALANCE) {
+                   revert InvalidParameterEncoding("BALANCE fetcher type is not supported for TARGET param type");
+                }
+                composedTarget = abi.decode(processedInput, (address));
             } else if (inputParams[i].paramType == InputParamType.VALUE) {
-                composedValue = abi.decode(inputParams[i].paramData, (uint256));
+                composedValue = abi.decode(processedInput, (uint256));
             } else if (inputParams[i].paramType == InputParamType.CALL_DATA) {
-                composedCalldata = bytes.concat(composedCalldata, processInput(inputParams[i]));
+                composedCalldata = bytes.concat(composedCalldata, processedInput);
             } else {
-                revert InvalidParameterEncoding();
+                revert InvalidParameterEncoding("Invalid param type");
             }
         }
         return Execution({
@@ -68,6 +73,7 @@ library ComposableExecutionLib {
         } else if (param.fetcherType == InputParamFetcherType.BALANCE) {
             address contractAddr;
             address account;
+            bytes calldata paramData = param.paramData;
             assembly {
                 contractAddr := shr(96, calldataload(paramData.offset))
                 account := shr(96, calldataload(add(paramData.offset, 0x14)))
@@ -81,7 +87,7 @@ library ComposableExecutionLib {
             _validateConstraints(abi.encode(balance), param.constraints);
             return abi.encode(balance);
         } else {
-            revert InvalidParameterEncoding();
+            revert InvalidParameterEncoding("Invalid param fetcher type");
         }
     }
 

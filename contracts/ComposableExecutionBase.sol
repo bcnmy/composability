@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.23;
 
 import {ComposableExecutionLib} from "./ComposableExecutionLib.sol";
 import {InputParam, OutputParam, ComposableExecution, Constraint, ConstraintType, InputParamFetcherType, OutputParamFetcherType} from "./types/ComposabilityDataTypes.sol";
@@ -28,6 +28,8 @@ abstract contract ComposableExecutionBase is IComposableExecution {
             } else {
                 returnData = new bytes(0);
             }
+            // TODO: add early sanity check that output params length is > 0
+            // so if it is 0, we can not even call processOutputs
             cExecution.outputParams.processOutputs(returnData, address(this));
         }
     }
