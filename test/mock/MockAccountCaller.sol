@@ -20,7 +20,6 @@ contract MockAccountCaller is IAccount {
     event MockAccountFallback(bytes callData, uint256 value);
 
     error OnlyExecutor();
-    error FallbackFailed(bytes result);
     IValidator public validator;
     IFallback public handler;
     IExecutor public executor;

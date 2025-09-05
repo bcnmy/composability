@@ -71,18 +71,19 @@ library ComposableExecutionLib {
             _validateConstraints(returnData, param.constraints);
             return returnData;
         } else if (param.fetcherType == InputParamFetcherType.BALANCE) {
-            address contractAddr;
+            address tokenAddr;
             address account;
             bytes calldata paramData = param.paramData;
+            // expect paramData to be abi.encodePacked(address token, address account)
             assembly {
-                contractAddr := shr(96, calldataload(paramData.offset))
+                tokenAddr := shr(96, calldataload(paramData.offset))
                 account := shr(96, calldataload(add(paramData.offset, 0x14)))
             }
             uint256 balance;
-            if (contractAddr == address(0)) {
+            if (tokenAddr == address(0)) {
                 balance = account.balance;
             } else {
-                balance = IERC20(contractAddr).balanceOf(account);
+                balance = IERC20(tokenAddr).balanceOf(account);
             }
             _validateConstraints(abi.encode(balance), param.constraints);
             return abi.encode(balance);

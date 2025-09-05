@@ -11,6 +11,7 @@ import {MockAccount} from "test/mock/MockAccount.sol";
 import {Storage} from "../contracts/Storage.sol";
 import {InputParam, Constraint, InputParamType, InputParamFetcherType} from "contracts/types/ComposabilityDataTypes.sol";
 import "./mock/DummyContract.sol";
+import "./mock/MockERC20Balance.sol";
 
 address constant ENTRYPOINT_V07_ADDRESS = 0x0000000071727De22E5E9d8BAf0edAc6f37da032;
 
@@ -21,6 +22,7 @@ contract ComposabilityTestBase is Test {
     MockAccountCaller internal mockAccountCaller;
     MockAccountNonRevert internal mockAccountNonRevert;
     MockAccount internal mockAccount;
+    MockERC20Balance internal mockERC20Balance;
 
     event MockAccountReceive(uint256 amount);
     Storage public storageContract;
@@ -52,6 +54,7 @@ contract ComposabilityTestBase is Test {
 
         mockAccount = new MockAccount({_validator: address(0), _handler: address(0xa11ce)});
         mockAccountNonRevert = new MockAccountNonRevert({_validator: address(0), _handler: address(0xa11ce)});
+        mockERC20Balance = new MockERC20Balance();
 
         // fund accounts
         vm.deal(address(mockAccountFallback), 100 ether);

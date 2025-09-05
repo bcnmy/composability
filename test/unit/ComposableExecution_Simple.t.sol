@@ -78,6 +78,20 @@ contract ComposableExecutionTestSimpleCases is ComposabilityTestBase {
         _runtime_Target_Injection(address(mockAccountDelegateCaller), address(mockAccountDelegateCaller));
     }
 
+    function test_ERC20_Balance_Fetcher_Success() public {
+        _erc20_Balance_Fetcher(address(mockAccountFallback), address(composabilityHandler));
+        _erc20_Balance_Fetcher(address(mockAccount), address(mockAccount));
+        _erc20_Balance_Fetcher(address(mockAccountCaller), address(composabilityHandler));
+        _erc20_Balance_Fetcher(address(mockAccountDelegateCaller), address(mockAccountDelegateCaller));
+    }
+
+    function test_Native_Balance_Fetcher_Success() public {
+        _native_Balance_Fetcher(address(mockAccountFallback), address(composabilityHandler));
+        _native_Balance_Fetcher(address(mockAccount), address(mockAccount));
+        _native_Balance_Fetcher(address(mockAccountCaller), address(composabilityHandler));
+        _native_Balance_Fetcher(address(mockAccountDelegateCaller), address(mockAccountDelegateCaller));
+    }
+
     // =================================================================================
     // ================================ TEST SCENARIOS ================================
     // =================================================================================
@@ -467,6 +481,74 @@ contract ComposableExecutionTestSimpleCases is ComposabilityTestBase {
         emit Uint256Emitted(uintToEmit);
         IComposableExecution(address(account)).executeComposable(executions);
         
+        vm.stopPrank();
+    }
+
+    function _erc20_Balance_Fetcher(address account, address caller) internal {
+        vm.startPrank(ENTRYPOINT_V07_ADDRESS);
+
+        uint256 balanceToSet = 139122330912355;
+        mockERC20Balance.setBalance(address(0xa11ce), balanceToSet);
+
+        InputParam[] memory inputParams = new InputParam[](3);
+        inputParams[0] = _createRawTargetInputParam(address(dummyContract));
+        inputParams[1] = _createRawValueInputParam(0);
+
+        inputParams[2] = InputParam({
+            paramType: InputParamType.CALL_DATA,
+            fetcherType: InputParamFetcherType.BALANCE,
+            paramData: abi.encodePacked(address(mockERC20Balance), address(0xa11ce)),
+            constraints: emptyConstraints
+        });
+
+        OutputParam[] memory outputParams = new OutputParam[](0);
+
+        ComposableExecution[] memory executions = new ComposableExecution[](1);
+        executions[0] = ComposableExecution({
+            functionSig: DummyContract.emitUint256.selector,
+            inputParams: inputParams,
+            outputParams: outputParams
+        });
+
+        // balance is used as param to the emitUint256 function
+        vm.expectEmit(address(dummyContract));
+        emit Uint256Emitted(balanceToSet);
+        IComposableExecution(address(account)).executeComposable(executions);
+
+        vm.stopPrank();
+    }
+
+    function _native_Balance_Fetcher(address account, address caller) internal {
+        vm.startPrank(ENTRYPOINT_V07_ADDRESS);
+
+        uint256 balanceToSet = 139122330912355;
+        vm.deal(address(0xa11ce), balanceToSet);
+        assertEq(address(0xa11ce).balance, balanceToSet);
+
+        InputParam[] memory inputParams = new InputParam[](3);
+        inputParams[0] = _createRawTargetInputParam(address(dummyContract));
+        inputParams[1] = _createRawValueInputParam(0);
+        
+        inputParams[2] = InputParam({
+            paramType: InputParamType.CALL_DATA,
+            fetcherType: InputParamFetcherType.BALANCE,
+            paramData: abi.encodePacked(address(0), address(0xa11ce)),
+            constraints: emptyConstraints
+        });
+
+        OutputParam[] memory outputParams = new OutputParam[](0);
+
+        ComposableExecution[] memory executions = new ComposableExecution[](1);
+        executions[0] = ComposableExecution({
+            functionSig: DummyContract.emitUint256.selector,
+            inputParams: inputParams,
+            outputParams: outputParams
+        });
+        
+        vm.expectEmit(address(dummyContract));
+        emit Uint256Emitted(balanceToSet);
+        IComposableExecution(address(account)).executeComposable(executions);
+
         vm.stopPrank();
     }
     

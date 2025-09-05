@@ -10,6 +10,9 @@ import "contracts/types/ComposabilityDataTypes.sol";
 
 contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
 
+    error FallbackFailed(bytes result);
+    error InvalidParameterEncoding(string message);
+
     function setUp() public override {
         super.setUp();
     }
@@ -53,6 +56,13 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
     // the revert reason is saved in the storage
     function test_save_Revert_Reason_in_Storage() public {
         _save_Revert_Reason_in_Storage(address(mockAccountNonRevert), address(mockAccountNonRevert));
+    }
+
+    function test_Balance_Fetcher_Reverts_If_Used_For_TARGET_Param() public {
+        _balance_Fetcher_Reverts_If_Used_For_TARGET_Param(address(mockAccountFallback), address(composabilityHandler));
+        _balance_Fetcher_Reverts_If_Used_For_TARGET_Param(address(mockAccount), address(mockAccount));
+        _balance_Fetcher_Reverts_If_Used_For_TARGET_Param(address(mockAccountCaller), address(composabilityHandler));
+        _balance_Fetcher_Reverts_If_Used_For_TARGET_Param(address(mockAccountDelegateCaller), address(mockAccountDelegateCaller));
     }
     
     // =================================================================================
@@ -410,6 +420,39 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
         
         bytes32 expectedValue = bytes32(DummyRevert.selector);
         assertEq(storedValue0, expectedValue, "Value 0 not stored correctly in the composability storage");
+
+        vm.stopPrank();
+    }
+
+    function _balance_Fetcher_Reverts_If_Used_For_TARGET_Param(address account, address caller) internal {
+        vm.startPrank(ENTRYPOINT_V07_ADDRESS);
+
+        InputParam[] memory inputParams = new InputParam[](2);
+        
+        inputParams[0] = _createRawValueInputParam(0);
+
+        inputParams[1] = InputParam({
+            paramType: InputParamType.TARGET,
+            fetcherType: InputParamFetcherType.BALANCE,
+            paramData: abi.encodePacked(address(0), address(0xa11ce)),
+            constraints: emptyConstraints
+        });
+
+        OutputParam[] memory outputParams = new OutputParam[](0);
+
+        ComposableExecution[] memory executions = new ComposableExecution[](1);
+        executions[0] = ComposableExecution({
+            functionSig: "",
+            inputParams: inputParams,
+            outputParams: outputParams
+        });
+        
+        if (address(account) == address(mockAccountFallback)) {
+            vm.expectRevert(abi.encodeWithSelector(MockAccountFallback.FallbackFailed.selector, abi.encodeWithSelector(InvalidParameterEncoding.selector, "BALANCE fetcher type is not supported for TARGET param type")));
+        } else {
+            vm.expectRevert(abi.encodeWithSelector(InvalidParameterEncoding.selector, "BALANCE fetcher type is not supported for TARGET param type"));
+        }
+        IComposableExecution(address(account)).executeComposable(executions);
 
         vm.stopPrank();
     }
