@@ -2,7 +2,7 @@
 pragma solidity ^0.8.23;
 
 import {ComposableExecutionLib} from "./ComposableExecutionLib.sol";
-import {InputParam, OutputParam, ComposableExecution, Constraint, ConstraintType, InputParamFetcherType, InputParamTypeOutputParamFetcherType} from "./types/ComposabilityDataTypes.sol";
+import {InputParam, OutputParam, ComposableExecution, Constraint, ConstraintType, InputParamFetcherType, InputParamType, OutputParamFetcherType} from "./types/ComposabilityDataTypes.sol";
 import {IComposableExecution} from "./interfaces/IComposableExecution.sol";
 import {Execution} from "erc7579/interfaces/IERC7579Account.sol";
 
