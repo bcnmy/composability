@@ -43,7 +43,7 @@ library ComposableExecutionLib {
         }
         return Execution({
             target: composedTarget,
-            value: composedValue,
+            value: composedValue, // if a param with VALUE type was not provided, it will be 0
             callData: composedCalldata
         });
     }
@@ -57,6 +57,7 @@ library ComposableExecutionLib {
             address contractAddr;
             bytes calldata callData;
             bytes calldata paramData = param.paramData;
+            // expect paramData to be abi.encode(address contractAddr, bytes callData)
             assembly {
                 contractAddr := calldataload(paramData.offset)
                 let s := calldataload(add(paramData.offset, 0x20))

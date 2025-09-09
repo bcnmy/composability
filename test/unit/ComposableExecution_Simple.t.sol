@@ -490,16 +490,16 @@ contract ComposableExecutionTestSimpleCases is ComposabilityTestBase {
         uint256 balanceToSet = 139122330912355;
         mockERC20Balance.setBalance(address(0xa11ce), balanceToSet);
 
-        InputParam[] memory inputParams = new InputParam[](3);
+        InputParam[] memory inputParams = new InputParam[](2);
         inputParams[0] = _createRawTargetInputParam(address(dummyContract));
-        inputParams[1] = _createRawValueInputParam(0);
-
-        inputParams[2] = InputParam({
+        inputParams[1] = InputParam({
             paramType: InputParamType.CALL_DATA,
             fetcherType: InputParamFetcherType.BALANCE,
             paramData: abi.encodePacked(address(mockERC20Balance), address(0xa11ce)),
             constraints: emptyConstraints
         });
+
+        //inputParams[2] = _createRawValueInputParam(0);
 
         OutputParam[] memory outputParams = new OutputParam[](0);
 
