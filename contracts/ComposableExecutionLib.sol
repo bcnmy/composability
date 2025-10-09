@@ -1,45 +1,65 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import {Storage} from "./Storage.sol";
-import {InputParam, OutputParam, Constraint, ConstraintType, InputParamType, InputParamFetcherType, OutputParamFetcherType} from "./types/ComposabilityDataTypes.sol";
-import {Execution} from "erc7579/interfaces/IERC7579Account.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Storage } from "./Storage.sol";
+import {
+    InputParam,
+    OutputParam,
+    Constraint,
+    ConstraintType,
+    InputParamType,
+    InputParamFetcherType,
+    OutputParamFetcherType
+} from "./types/ComposabilityDataTypes.sol";
+import { Execution } from "erc7579/interfaces/IERC7579Account.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // Library for composable execution handling
 library ComposableExecutionLib {
-
     error ConstraintNotMet(ConstraintType constraintType);
     error Output_StaticCallFailed();
     error InvalidParameterEncoding(string message);
     error InvalidOutputParamFetcherType();
     error ComposableExecutionFailed();
     error InvalidConstraintType();
+    error InvalidSetOfInputParams(string message);
 
     // Process the input parameters and return the composed calldata
-    function processInputs(InputParam[] calldata inputParams, bytes4 functionSig)
-        internal
-        view
-        returns (Execution memory)
-    {
+    function processInputs(InputParam[] calldata inputParams, bytes4 functionSig) internal view returns (Execution memory) {
         address composedTarget;
         uint256 composedValue;
         bytes memory composedCalldata = abi.encodePacked(functionSig);
         uint256 length = inputParams.length;
+
+        // Bit 0: TARGET param type set, Bit 1: VALUE param type set
+        uint256 paramTypeFlags = 0;
         for (uint256 i; i < length; i++) {
             bytes memory processedInput = processInput(inputParams[i]);
             if (inputParams[i].paramType == InputParamType.TARGET) {
                 if (inputParams[i].fetcherType == InputParamFetcherType.BALANCE) {
-                   revert InvalidParameterEncoding("BALANCE fetcher type is not supported for TARGET param type");
+                    revert InvalidParameterEncoding("BALANCE fetcher type is not supported for TARGET param type");
                 }
+                // Check if TARGET has already been set (bit 0)
+                if (paramTypeFlags & 1 != 0) {
+                    revert InvalidSetOfInputParams("TARGET param type can only be set once");
+                }
+                paramTypeFlags |= 1; // Set bit 0
                 composedTarget = abi.decode(processedInput, (address));
             } else if (inputParams[i].paramType == InputParamType.VALUE) {
+                // Check if VALUE has already been set (bit 1)
+                if (paramTypeFlags & 2 != 0) {
+                    revert InvalidSetOfInputParams("VALUE param type can only be set once");
+                }
+                paramTypeFlags |= 2; // Set bit 1
                 composedValue = abi.decode(processedInput, (uint256));
             } else if (inputParams[i].paramType == InputParamType.CALL_DATA) {
                 composedCalldata = bytes.concat(composedCalldata, processedInput);
             } else {
                 revert InvalidParameterEncoding("Invalid param type");
             }
+        }
+        if (composedTarget == address(0)) {
+            revert InvalidSetOfInputParams("TARGET InputParam is required");
         }
         return Execution({
             target: composedTarget,
@@ -116,7 +136,7 @@ library ComposableExecutionLib {
                 targetStorageSlot := calldataload(add(paramData.offset, 0x40))
             }
             _parseReturnDataAndWriteToStorage(returnValues, returnData, targetStorageContract, targetStorageSlot, account);
-        // same for static calls
+            // same for static calls
         } else if (param.fetcherType == OutputParamFetcherType.STATIC_CALL) {
             uint256 returnValues;
             address sourceContract;
@@ -145,10 +165,7 @@ library ComposableExecutionLib {
     }
 
     /// @dev Validate the constraints => compare the value with the reference data
-    function _validateConstraints(bytes memory rawValue, Constraint[] calldata constraints)
-        private
-        pure
-    {
+    function _validateConstraints(bytes memory rawValue, Constraint[] calldata constraints) private pure {
         if (constraints.length > 0) {
             for (uint256 i; i < constraints.length; i++) {
                 Constraint memory constraint = constraints[i];
@@ -173,17 +190,21 @@ library ComposableExecutionLib {
     }
 
     /// @dev Parse the return data and write to the appropriate storage contract
-    function _parseReturnDataAndWriteToStorage(uint256 returnValues, bytes memory returnData, address targetStorageContract, bytes32 targetStorageSlot, address account) internal {
+    function _parseReturnDataAndWriteToStorage(
+        uint256 returnValues,
+        bytes memory returnData,
+        address targetStorageContract,
+        bytes32 targetStorageSlot,
+        address account
+    )
+        internal
+    {
         for (uint256 i; i < returnValues; i++) {
             bytes32 value;
             assembly {
                 value := mload(add(returnData, add(0x20, mul(i, 0x20))))
             }
-            Storage(targetStorageContract).writeStorage({
-                slot: keccak256(abi.encodePacked(targetStorageSlot, i)),
-                value: value,
-                account: account
-            });
+            Storage(targetStorageContract).writeStorage({ slot: keccak256(abi.encodePacked(targetStorageSlot, i)), value: value, account: account });
         }
     }
 }

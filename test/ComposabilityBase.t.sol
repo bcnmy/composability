@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import {Test, Vm, console2} from "forge-std/Test.sol";
-import {MockAccountFallback} from "./mock/MockAccountFallback.sol";
-import {MockAccountNonRevert} from "./mock/MockAccountNonRevert.sol";
-import {ComposableExecutionModule} from "contracts/ComposableExecutionModule.sol";
-import {MockAccountDelegateCaller} from "./mock/MockAccountDelegateCaller.sol";
-import {MockAccountCaller} from "./mock/MockAccountCaller.sol";
-import {MockAccount} from "test/mock/MockAccount.sol";
-import {Storage} from "../contracts/Storage.sol";
-import {InputParam, Constraint, InputParamType, InputParamFetcherType} from "contracts/types/ComposabilityDataTypes.sol";
+import { Test, Vm, console2 } from "forge-std/Test.sol";
+import { MockAccountFallback } from "./mock/MockAccountFallback.sol";
+import { MockAccountNonRevert } from "./mock/MockAccountNonRevert.sol";
+import { ComposableExecutionModule } from "contracts/ComposableExecutionModule.sol";
+import { MockAccountDelegateCaller } from "./mock/MockAccountDelegateCaller.sol";
+import { MockAccountCaller } from "./mock/MockAccountCaller.sol";
+import { MockAccount } from "test/mock/MockAccount.sol";
+import { Storage } from "../contracts/Storage.sol";
+import { InputParam, Constraint, InputParamType, InputParamFetcherType } from "contracts/types/ComposabilityDataTypes.sol";
 import "./mock/DummyContract.sol";
 import "./mock/MockERC20Balance.sol";
 
@@ -25,6 +25,7 @@ contract ComposabilityTestBase is Test {
     MockERC20Balance internal mockERC20Balance;
 
     event MockAccountReceive(uint256 amount);
+
     Storage public storageContract;
     DummyContract public dummyContract;
 
@@ -35,25 +36,16 @@ contract ComposabilityTestBase is Test {
 
     function setUp() public virtual {
         composabilityHandler = new ComposableExecutionModule(ENTRYPOINT_V07_ADDRESS);
-        mockAccountFallback = new MockAccountFallback({
-            _validator: address(0),
-            _executor: address(composabilityHandler),
-            _handler: address(composabilityHandler)
-        });
-        mockAccountCaller = new MockAccountCaller({
-            _validator: address(0),
-            _executor: address(composabilityHandler),
-            _handler: address(composabilityHandler)
-        });
-        mockAccountDelegateCaller = new MockAccountDelegateCaller({
-            _composableModule: address(composabilityHandler)
-        });
+        mockAccountFallback =
+            new MockAccountFallback({ _validator: address(0), _executor: address(composabilityHandler), _handler: address(composabilityHandler) });
+        mockAccountCaller = new MockAccountCaller({ _validator: address(0), _executor: address(composabilityHandler), _handler: address(composabilityHandler) });
+        mockAccountDelegateCaller = new MockAccountDelegateCaller({ _composableModule: address(composabilityHandler) });
 
         vm.prank(address(mockAccountFallback));
         composabilityHandler.onInstall(abi.encodePacked(ENTRYPOINT_V07_ADDRESS));
 
-        mockAccount = new MockAccount({_validator: address(0), _handler: address(0xa11ce)});
-        mockAccountNonRevert = new MockAccountNonRevert({_validator: address(0), _handler: address(0xa11ce)});
+        mockAccount = new MockAccount({ _validator: address(0), _handler: address(0xa11ce) });
+        mockAccountNonRevert = new MockAccountNonRevert({ _validator: address(0), _handler: address(0xa11ce) });
         mockERC20Balance = new MockERC20Balance();
 
         // fund accounts
@@ -86,6 +78,4 @@ contract ComposabilityTestBase is Test {
             constraints: emptyConstraints
         });
     }
-
-
 }

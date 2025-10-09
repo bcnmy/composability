@@ -3,13 +3,12 @@ pragma solidity ^0.8.17;
 
 import "forge-std/Test.sol";
 import "test/ComposabilityBase.t.sol";
-import {ComposableExecutionModule} from "contracts/ComposableExecutionModule.sol";
-import {IComposableExecution} from "contracts/interfaces/IComposableExecution.sol";
+import { ComposableExecutionModule } from "contracts/ComposableExecutionModule.sol";
+import { IComposableExecution } from "contracts/interfaces/IComposableExecution.sol";
 import "contracts/ComposableExecutionLib.sol";
 import "contracts/types/ComposabilityDataTypes.sol";
 
 contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
-
     error FallbackFailed(bytes result);
     error InvalidParameterEncoding(string message);
 
@@ -18,7 +17,7 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
     }
 
     function test_inputs_With_Gte_Constraints() public {
-        _inputParamUsingGteConstraints(address(mockAccount), address(mockAccount));     
+        _inputParamUsingGteConstraints(address(mockAccount), address(mockAccount));
         _inputParamUsingGteConstraints(address(mockAccountFallback), address(composabilityHandler));
         _inputParamUsingGteConstraints(address(mockAccountCaller), address(composabilityHandler));
         _inputParamUsingGteConstraints(address(mockAccountDelegateCaller), address(mockAccountDelegateCaller));
@@ -43,15 +42,15 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
         _inputParamUsingEqConstraints(address(mockAccountFallback), address(composabilityHandler));
         _inputParamUsingEqConstraints(address(mockAccountCaller), address(composabilityHandler));
         _inputParamUsingEqConstraints(address(mockAccountDelegateCaller), address(mockAccountDelegateCaller));
-    }  
+    }
 
     function test_read_From_Storage_Reverts_if_the_expected_slot_is_not_initialized() public {
-        _read_From_Storage_Reverts_if_the_expected_slot_is_not_initialized(address(mockAccountFallback), address(composabilityHandler));        
+        _read_From_Storage_Reverts_if_the_expected_slot_is_not_initialized(address(mockAccountFallback), address(composabilityHandler));
         _read_From_Storage_Reverts_if_the_expected_slot_is_not_initialized(address(mockAccount), address(mockAccount));
         _read_From_Storage_Reverts_if_the_expected_slot_is_not_initialized(address(mockAccountCaller), address(composabilityHandler));
         _read_From_Storage_Reverts_if_the_expected_slot_is_not_initialized(address(mockAccountDelegateCaller), address(mockAccountDelegateCaller));
     }
-    
+
     // if the account does not revert on unsuccessful execution,
     // the revert reason is saved in the storage
     function test_save_Revert_Reason_in_Storage() public {
@@ -64,17 +63,14 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
         _balance_Fetcher_Reverts_If_Used_For_TARGET_Param(address(mockAccountCaller), address(composabilityHandler));
         _balance_Fetcher_Reverts_If_Used_For_TARGET_Param(address(mockAccountDelegateCaller), address(mockAccountDelegateCaller));
     }
-    
+
     // =================================================================================
     // ================================ TEST SCENARIOS ================================
     // =================================================================================
 
     function _inputParamUsingGteConstraints(address account, address caller) internal {
         Constraint[] memory constraints = new Constraint[](1);
-        constraints[0] = Constraint({
-            constraintType: ConstraintType.GTE,
-            referenceData: abi.encode(bytes32(uint256(43)))
-        });
+        constraints[0] = Constraint({ constraintType: ConstraintType.GTE, referenceData: abi.encode(bytes32(uint256(43))) });
 
         vm.startPrank(ENTRYPOINT_V07_ADDRESS);
 
@@ -109,9 +105,11 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
             inputParams: invalidInputParams, // use constrainted input parameter that's going to fail
             outputParams: outputParams
         });
-        bytes memory expectedRevertData; 
+        bytes memory expectedRevertData;
         if (address(account) == address(mockAccountFallback)) {
-            expectedRevertData = abi.encodeWithSelector(MockAccountFallback.FallbackFailed.selector, abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.GTE));
+            expectedRevertData = abi.encodeWithSelector(
+                MockAccountFallback.FallbackFailed.selector, abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.GTE)
+            );
         } else {
             expectedRevertData = abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.GTE);
         }
@@ -130,11 +128,8 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
 
     function _inputParamUsingLteConstraints(address account, address caller) internal {
         Constraint[] memory constraints = new Constraint[](1);
-        constraints[0] = Constraint({
-            constraintType: ConstraintType.LTE,
-            referenceData: abi.encode(bytes32(uint256(41)))
-        });
-        
+        constraints[0] = Constraint({ constraintType: ConstraintType.LTE, referenceData: abi.encode(bytes32(uint256(41))) });
+
         vm.startPrank(ENTRYPOINT_V07_ADDRESS);
 
         // Prepare invalid input param - call should revert
@@ -170,9 +165,11 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
             inputParams: invalidInputParams, // use constrainted input parameter that's going to fail
             outputParams: outputParams
         });
-        bytes memory expectedRevertReason; 
+        bytes memory expectedRevertReason;
         if (address(account) == address(mockAccountFallback)) {
-            expectedRevertReason = abi.encodeWithSelector(MockAccountFallback.FallbackFailed.selector, abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.LTE));
+            expectedRevertReason = abi.encodeWithSelector(
+                MockAccountFallback.FallbackFailed.selector, abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.LTE)
+            );
         } else {
             expectedRevertReason = abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.LTE);
         }
@@ -191,10 +188,7 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
 
     function _inputParamUsingInConstraints(address account, address caller) internal {
         Constraint[] memory constraints = new Constraint[](1);
-        constraints[0] = Constraint({
-            constraintType: ConstraintType.IN,
-            referenceData: abi.encode(bytes32(uint256(41)), bytes32(uint256(43)))
-        });
+        constraints[0] = Constraint({ constraintType: ConstraintType.IN, referenceData: abi.encode(bytes32(uint256(41)), bytes32(uint256(43))) });
 
         vm.startPrank(ENTRYPOINT_V07_ADDRESS);
 
@@ -243,9 +237,11 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
             inputParams: invalidInputParamsA, // use constrainted input parameter that's going to fail
             outputParams: outputParams
         });
-        bytes memory expectedRevertReason; 
+        bytes memory expectedRevertReason;
         if (address(account) == address(mockAccountFallback)) {
-            expectedRevertReason = abi.encodeWithSelector(MockAccountFallback.FallbackFailed.selector, abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.IN));
+            expectedRevertReason = abi.encodeWithSelector(
+                MockAccountFallback.FallbackFailed.selector, abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.IN)
+            );
         } else {
             expectedRevertReason = abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.IN);
         }
@@ -259,9 +255,11 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
             inputParams: invalidInputParamsB, // use constrainted input parameter that's going to fail
             outputParams: outputParams
         });
-        
+
         if (address(account) == address(mockAccountFallback)) {
-            expectedRevertReason = abi.encodeWithSelector(MockAccountFallback.FallbackFailed.selector, abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.IN));
+            expectedRevertReason = abi.encodeWithSelector(
+                MockAccountFallback.FallbackFailed.selector, abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.IN)
+            );
         } else {
             expectedRevertReason = abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.IN);
         }
@@ -280,10 +278,7 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
 
     function _inputParamUsingEqConstraints(address account, address caller) internal {
         Constraint[] memory constraints = new Constraint[](1);
-        constraints[0] = Constraint({
-            constraintType: ConstraintType.EQ,
-            referenceData: abi.encode(bytes32(uint256(42)))
-        });
+        constraints[0] = Constraint({ constraintType: ConstraintType.EQ, referenceData: abi.encode(bytes32(uint256(42))) });
 
         vm.startPrank(ENTRYPOINT_V07_ADDRESS);
 
@@ -297,7 +292,7 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
             constraints: constraints
         });
         invalidInputParams[1] = _createRawTargetInputParam(address(0));
-        invalidInputParams[2] = _createRawValueInputParam(0);   
+        invalidInputParams[2] = _createRawValueInputParam(0);
 
         // Prepare valid input param - call should succeed
         InputParam[] memory validInputParams = new InputParam[](3);
@@ -320,9 +315,11 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
             inputParams: invalidInputParams, // use constrainted input parameter that's going to fail
             outputParams: outputParams
         });
-        bytes memory expectedRevertReason; 
+        bytes memory expectedRevertReason;
         if (address(account) == address(mockAccountFallback)) {
-            expectedRevertReason = abi.encodeWithSelector(MockAccountFallback.FallbackFailed.selector, abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.EQ));
+            expectedRevertReason = abi.encodeWithSelector(
+                MockAccountFallback.FallbackFailed.selector, abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.EQ)
+            );
         } else {
             expectedRevertReason = abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.EQ);
         }
@@ -339,9 +336,9 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
         IComposableExecution(address(account)).executeComposable(validExecutions);
     }
 
-    // It can happen when the previous call, that creates the output params, fail. 
+    // It can happen when the previous call, that creates the output params, fail.
     // In this case, the composable execution should revert when reading this from storage
-    function _read_From_Storage_Reverts_if_the_expected_slot_is_not_initialized(address account, address caller) internal {        
+    function _read_From_Storage_Reverts_if_the_expected_slot_is_not_initialized(address account, address caller) internal {
         vm.startPrank(ENTRYPOINT_V07_ADDRESS);
 
         bytes32 namespace = storageContract.getNamespace(address(account), address(caller));
@@ -361,15 +358,12 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
         OutputParam[] memory outputParams = new OutputParam[](0);
 
         ComposableExecution[] memory executions = new ComposableExecution[](1);
-        executions[0] = ComposableExecution({
-            functionSig: DummyContract.B.selector,
-            inputParams: inputParams,
-            outputParams: outputParams
-        });
+        executions[0] = ComposableExecution({ functionSig: DummyContract.B.selector, inputParams: inputParams, outputParams: outputParams });
 
-        bytes memory expectedRevertReason; 
+        bytes memory expectedRevertReason;
         if (address(account) == address(mockAccountFallback)) {
-            expectedRevertReason = abi.encodeWithSelector(MockAccountFallback.FallbackFailed.selector, abi.encodePacked(ComposableExecutionLib.ComposableExecutionFailed.selector));
+            expectedRevertReason =
+                abi.encodeWithSelector(MockAccountFallback.FallbackFailed.selector, abi.encodePacked(ComposableExecutionLib.ComposableExecutionFailed.selector));
         } else {
             expectedRevertReason = abi.encodePacked(ComposableExecutionLib.ComposableExecutionFailed.selector);
         }
@@ -396,28 +390,18 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
         });
 
         OutputParam[] memory outputParamsExecA = new OutputParam[](1);
-        outputParamsExecA[0] = OutputParam({
-            fetcherType: OutputParamFetcherType.EXEC_RESULT,
-            paramData: abi.encode(
-                1,
-                address(storageContract),
-                SLOT_B
-            )
-        });
+        outputParamsExecA[0] = OutputParam({ fetcherType: OutputParamFetcherType.EXEC_RESULT, paramData: abi.encode(1, address(storageContract), SLOT_B) });
 
         ComposableExecution[] memory executionsA = new ComposableExecution[](1);
-        executionsA[0] = ComposableExecution({
-            functionSig: DummyContract.revertWithReason.selector,
-            inputParams: inputParamsExecA,
-            outputParams: outputParamsExecA
-        });
+        executionsA[0] =
+            ComposableExecution({ functionSig: DummyContract.revertWithReason.selector, inputParams: inputParamsExecA, outputParams: outputParamsExecA });
 
         IComposableExecution(address(account)).executeComposable(executionsA);
 
         bytes32 namespace = storageContract.getNamespace(address(account), address(caller));
         bytes32 SLOT_B_0 = keccak256(abi.encodePacked(SLOT_B, uint256(0)));
         bytes32 storedValue0 = storageContract.readStorage(namespace, SLOT_B_0);
-        
+
         bytes32 expectedValue = bytes32(DummyRevert.selector);
         assertEq(storedValue0, expectedValue, "Value 0 not stored correctly in the composability storage");
 
@@ -428,7 +412,7 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
         vm.startPrank(ENTRYPOINT_V07_ADDRESS);
 
         InputParam[] memory inputParams = new InputParam[](2);
-        
+
         inputParams[0] = _createRawValueInputParam(0);
 
         inputParams[1] = InputParam({
@@ -441,14 +425,15 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
         OutputParam[] memory outputParams = new OutputParam[](0);
 
         ComposableExecution[] memory executions = new ComposableExecution[](1);
-        executions[0] = ComposableExecution({
-            functionSig: "",
-            inputParams: inputParams,
-            outputParams: outputParams
-        });
-        
+        executions[0] = ComposableExecution({ functionSig: "", inputParams: inputParams, outputParams: outputParams });
+
         if (address(account) == address(mockAccountFallback)) {
-            vm.expectRevert(abi.encodeWithSelector(MockAccountFallback.FallbackFailed.selector, abi.encodeWithSelector(InvalidParameterEncoding.selector, "BALANCE fetcher type is not supported for TARGET param type")));
+            vm.expectRevert(
+                abi.encodeWithSelector(
+                    MockAccountFallback.FallbackFailed.selector,
+                    abi.encodeWithSelector(InvalidParameterEncoding.selector, "BALANCE fetcher type is not supported for TARGET param type")
+                )
+            );
         } else {
             vm.expectRevert(abi.encodeWithSelector(InvalidParameterEncoding.selector, "BALANCE fetcher type is not supported for TARGET param type"));
         }
@@ -457,4 +442,3 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
         vm.stopPrank();
     }
 }
-

@@ -1,10 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import {ComposableExecutionLib} from "./ComposableExecutionLib.sol";
-import {InputParam, OutputParam, ComposableExecution, Constraint, ConstraintType, InputParamFetcherType, InputParamType, OutputParamFetcherType} from "./types/ComposabilityDataTypes.sol";
-import {IComposableExecution} from "./interfaces/IComposableExecution.sol";
-import {Execution} from "erc7579/interfaces/IERC7579Account.sol";
+import { ComposableExecutionLib } from "./ComposableExecutionLib.sol";
+import {
+    InputParam,
+    OutputParam,
+    ComposableExecution,
+    Constraint,
+    ConstraintType,
+    InputParamFetcherType,
+    InputParamType,
+    OutputParamFetcherType
+} from "./types/ComposabilityDataTypes.sol";
+import { IComposableExecution } from "./interfaces/IComposableExecution.sol";
+import { Execution } from "erc7579/interfaces/IERC7579Account.sol";
 
 abstract contract ComposableExecutionBase is IComposableExecution {
     using ComposableExecutionLib for InputParam[];
@@ -38,8 +47,5 @@ abstract contract ComposableExecutionBase is IComposableExecution {
     /// using account's native execution approach
     /// we do not use Execution struct as an argument to be as less opinionated as possible
     /// instead we just use standard types
-    function _executeAction(address to, uint256 value, bytes memory data)
-        internal
-        virtual
-        returns (bytes memory returnData);
+    function _executeAction(address to, uint256 value, bytes memory data) internal virtual returns (bytes memory returnData);
 }
