@@ -287,8 +287,7 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
         invalidInputParams[0] = InputParam({
             paramType: InputParamType.CALL_DATA,
             fetcherType: InputParamFetcherType.RAW_BYTES,
-            paramData: abi.encode(43),
-            //constraints: abi.encodePacked(ConstraintType.EQ, bytes32(uint256(42))) // value must be exactly 42
+            paramData: abi.encode(43), // value must be exactly 42
             constraints: constraints
         });
         invalidInputParams[1] = _createRawTargetInputParam(address(0));
@@ -300,7 +299,6 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
             paramType: InputParamType.CALL_DATA,
             fetcherType: InputParamFetcherType.RAW_BYTES,
             paramData: abi.encode(42),
-            //constraints: abi.encodePacked(ConstraintType.EQ, bytes32(uint256(42))) // value must be exactly 42
             constraints: constraints
         });
         validInputParams[1] = _createRawTargetInputParam(address(0));

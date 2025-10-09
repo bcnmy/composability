@@ -58,12 +58,13 @@ library ComposableExecutionLib {
                 revert InvalidParameterEncoding("Invalid param type");
             }
         }
-        if (composedTarget == address(0)) {
-            revert InvalidSetOfInputParams("TARGET InputParam is required");
-        }
+        // if a param with TARGET type was not provided, it will be address(0)
+        // we don't restrict it since some calls may want to call address(0)
+        // if a param with VALUE type was not provided, it will be 0
+        // this is even more often case, as many calls happen with 0 value
         return Execution({
-            target: composedTarget,
-            value: composedValue, // if a param with VALUE type was not provided, it will be 0
+            target: composedTarget, 
+            value: composedValue,
             callData: composedCalldata
         });
     }
