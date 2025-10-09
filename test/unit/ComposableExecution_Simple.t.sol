@@ -499,7 +499,9 @@ contract ComposableExecutionTestSimpleCases is ComposabilityTestBase {
             constraints: emptyConstraints
         });
 
-        //inputParams[2] = _createRawValueInputParam(0);
+        // since this is commented out, this test case also 
+        // makes sure that the value = 0 is used if the VALUE param is not provided
+        // inputParams[2] = _createRawValueInputParam(0);
 
         OutputParam[] memory outputParams = new OutputParam[](0);
 
