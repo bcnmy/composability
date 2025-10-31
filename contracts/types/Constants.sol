@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.23;
 
 bytes3 constant SIG_TYPE_MEE_FLOW = 0x177eee;
 
