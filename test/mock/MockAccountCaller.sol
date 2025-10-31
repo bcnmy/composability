@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import {IAccount} from "account-abstraction/interfaces/IAccount.sol";
-import {PackedUserOperation} from "account-abstraction/core/UserOperationLib.sol";
-import {IValidator, IFallback, IExecutor} from "erc7579/interfaces/IERC7579Module.sol";
-import {IStatelessValidator} from "node_modules/@rhinestone/module-bases/src/interfaces/IStatelessValidator.sol";
-import {EIP1271_SUCCESS, EIP1271_FAILED} from "contracts/types/Constants.sol";
-import {ERC2771Lib} from "./lib/ERC2771Lib.sol";
-import {ExecutionLib} from "erc7579/lib/ExecutionLib.sol";
-import {ModeLib, ModeCode as ExecutionMode, CallType, ExecType, CALLTYPE_SINGLE} from "erc7579/lib/ModeLib.sol";
+import { IAccount } from "account-abstraction/interfaces/IAccount.sol";
+import { PackedUserOperation } from "account-abstraction/core/UserOperationLib.sol";
+import { IValidator, IFallback, IExecutor } from "erc7579/interfaces/IERC7579Module.sol";
+import { IStatelessValidator } from "node_modules/@rhinestone/module-bases/src/interfaces/IStatelessValidator.sol";
+import { EIP1271_SUCCESS, EIP1271_FAILED } from "contracts/types/Constants.sol";
+import { ERC2771Lib } from "./lib/ERC2771Lib.sol";
+import { ExecutionLib } from "erc7579/lib/ExecutionLib.sol";
+import { ModeLib, ModeCode as ExecutionMode, CallType, ExecType, CALLTYPE_SINGLE } from "erc7579/lib/ModeLib.sol";
 import "contracts/interfaces/IComposableExecution.sol";
 
-import {console2} from "forge-std/console2.sol";
+import { console2 } from "forge-std/console2.sol";
 
 contract MockAccountCaller is IAccount {
     event MockAccountValidateUserOp(PackedUserOperation userOp, bytes32 userOpHash, uint256 missingAccountFunds);
@@ -20,7 +20,7 @@ contract MockAccountCaller is IAccount {
     event MockAccountFallback(bytes callData, uint256 value);
 
     error OnlyExecutor();
-    error FallbackFailed(bytes result);
+
     IValidator public validator;
     IFallback public handler;
     IExecutor public executor;
@@ -37,14 +37,11 @@ contract MockAccountCaller is IAccount {
     // naming is to make testing easier.
     // in the wild it should be some open execution function used instead.
     // For example ERC-7579 `execute(mode, executionData)`
-    function executeComposable(ComposableExecution[] calldata executions) external payable {
-        IComposableExecutionModule(address(handler)).executeComposableCall(executions);
+    function executeComposable(ComposableExecution[] calldata cExecutions) external payable {
+        IComposableExecutionModule(address(handler)).executeComposableCall(cExecutions);
     }
 
-    function validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash, uint256 missingAccountFunds)
-        external
-        returns (uint256 vd)
-    {
+    function validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash, uint256 missingAccountFunds) external returns (uint256 vd) {
         if (address(validator) != address(0)) {
             vd = validator.validateUserOp(userOp, userOpHash);
         }
@@ -52,35 +49,19 @@ contract MockAccountCaller is IAccount {
     }
 
     function isValidSignature(bytes32 hash, bytes calldata signature) external view returns (bytes4) {
-        return
-            IValidator(address(validator)).isValidSignatureWithSender({sender: msg.sender, hash: hash, data: signature});
+        return IValidator(address(validator)).isValidSignatureWithSender({ sender: msg.sender, hash: hash, data: signature });
     }
 
-    function validateSignatureWithData(bytes32 signedHash, bytes calldata signature, bytes calldata signerData)
-        external
-        view
-        returns (bool)
-    {
-        return IStatelessValidator(address(validator)).validateSignatureWithData({
-            hash: signedHash,
-            signature: signature,
-            data: signerData
-        });
+    function validateSignatureWithData(bytes32 signedHash, bytes calldata signature, bytes calldata signerData) external view returns (bool) {
+        return IStatelessValidator(address(validator)).validateSignatureWithData({ hash: signedHash, signature: signature, data: signerData });
     }
 
-    function execute(address to, uint256 value, bytes calldata data)
-        external
-        returns (bool success, bytes memory result)
-    {
+    function execute(address to, uint256 value, bytes calldata data) external returns (bool success, bytes memory result) {
         emit MockAccountExecute(to, value, data);
-        (success, result) = to.call{value: value}(data);
+        (success, result) = to.call{ value: value }(data);
     }
 
-    function executeFromExecutor(ExecutionMode mode, bytes calldata executionCalldata)
-        external
-        payable
-        returns (bytes[] memory returnData)
-    {
+    function executeFromExecutor(ExecutionMode mode, bytes calldata executionCalldata) external payable returns (bytes[] memory returnData) {
         require(msg.sender == address(executor), OnlyExecutor());
 
         (CallType callType, ExecType execType,,) = mode.decode();
@@ -94,11 +75,7 @@ contract MockAccountCaller is IAccount {
         }
     }
 
-    function _execute(address target, uint256 value, bytes calldata callData)
-        internal
-        virtual
-        returns (bytes memory result)
-    {
+    function _execute(address target, uint256 value, bytes calldata callData) internal virtual returns (bytes memory result) {
         /// @solidity memory-safe-assembly
         assembly {
             result := mload(0x40)

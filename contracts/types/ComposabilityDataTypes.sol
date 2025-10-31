@@ -1,16 +1,26 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.23;
+
+// Type of the input parameter
+enum InputParamType {
+    TARGET, // The target address
+    VALUE, // The value
+    CALL_DATA // The call data
+
+}
 
 // Parameter type for composition
 enum InputParamFetcherType {
     RAW_BYTES, // Already encoded bytes
-    STATIC_CALL // Perform a static call
+    STATIC_CALL, // Perform a static call
+    BALANCE // Get the balance of an address
 
 }
 
 enum OutputParamFetcherType {
     EXEC_RESULT, // The return of the execution call
     STATIC_CALL // Call to some other function
+
 }
 
 // Constraint type for parameter validation
@@ -19,6 +29,7 @@ enum ConstraintType {
     GTE, // Greater than or equal to
     LTE, // Less than or equal to
     IN // In range
+
 }
 
 // Constraint for parameter validation
@@ -29,6 +40,7 @@ struct Constraint {
 
 // Structure to define parameter composition
 struct InputParam {
+    InputParamType paramType;
     InputParamFetcherType fetcherType; // How to fetch the parameter
     bytes paramData;
     Constraint[] constraints;
@@ -42,8 +54,6 @@ struct OutputParam {
 
 // Structure to define a composable execution
 struct ComposableExecution {
-    address to;
-    uint256 value;
     bytes4 functionSig;
     InputParam[] inputParams;
     OutputParam[] outputParams;
