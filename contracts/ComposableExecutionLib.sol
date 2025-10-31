@@ -96,11 +96,16 @@ library ComposableExecutionLib {
             address tokenAddr;
             address account;
             bytes calldata paramData = param.paramData;
+
             // expect paramData to be abi.encodePacked(address token, address account)
+            // Validate exact length requirement
+            require(paramData.length == 40, 
+                     InvalidParameterEncoding("Invalid paramData length"));
             assembly {
                 tokenAddr := shr(96, calldataload(paramData.offset))
                 account := shr(96, calldataload(add(paramData.offset, 0x14)))
             }
+
             uint256 balance;
             if (tokenAddr == address(0)) {
                 balance = account.balance;
