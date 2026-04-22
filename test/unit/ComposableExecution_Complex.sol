@@ -94,7 +94,9 @@ contract ComposableExecutionTestComplexCases is ComposabilityTestBase {
         OutputParam[] memory outputParams = new OutputParam[](1);
         outputParams[0] = OutputParam({
             fetcherType: OutputParamFetcherType.STATIC_CALL,
-            paramData: abi.encode(4, address(dummyContract), abi.encodeWithSelector(DummyContract.returnMultipleValues.selector), address(storageContract), SLOT_A)
+            paramData: abi.encode(
+                4, address(dummyContract), abi.encodeWithSelector(DummyContract.returnMultipleValues.selector), address(storageContract), SLOT_A
+            )
         });
 
         ComposableExecution[] memory executions = new ComposableExecution[](1);
@@ -258,18 +260,12 @@ contract ComposableExecutionTestComplexCases is ComposabilityTestBase {
 
         // tokenIn
         inputParams[3] = InputParam({
-            paramType: InputParamType.CALL_DATA,
-            fetcherType: InputParamFetcherType.RAW_BYTES,
-            paramData: abi.encode(tokenIn),
-            constraints: emptyConstraints
+            paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(tokenIn), constraints: emptyConstraints
         });
 
         // tokenOut
         inputParams[4] = InputParam({
-            paramType: InputParamType.CALL_DATA,
-            fetcherType: InputParamFetcherType.RAW_BYTES,
-            paramData: abi.encode(tokenOut),
-            constraints: emptyConstraints
+            paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(tokenOut), constraints: emptyConstraints
         });
 
         // amountIn
@@ -290,18 +286,12 @@ contract ComposableExecutionTestComplexCases is ComposabilityTestBase {
 
         // deadline
         inputParams[7] = InputParam({
-            paramType: InputParamType.CALL_DATA,
-            fetcherType: InputParamFetcherType.RAW_BYTES,
-            paramData: abi.encode(deadline),
-            constraints: emptyConstraints
+            paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(deadline), constraints: emptyConstraints
         });
 
         // fee
         inputParams[8] = InputParam({
-            paramType: InputParamType.CALL_DATA,
-            fetcherType: InputParamFetcherType.RAW_BYTES,
-            paramData: abi.encode(fee),
-            constraints: emptyConstraints
+            paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(fee), constraints: emptyConstraints
         });
 
         // === end struct ==

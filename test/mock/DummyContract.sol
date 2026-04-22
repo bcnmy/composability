@@ -110,4 +110,8 @@ contract DummyContract {
     function payableEmit() external payable {
         emit Received(msg.value);
     }
+
+    function getSignedValue() external pure returns (int256) {
+        return -42;
+    }
 }

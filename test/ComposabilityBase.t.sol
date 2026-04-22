@@ -63,19 +63,13 @@ contract ComposabilityTestBase is Test {
 
     function _createRawTargetInputParam(address target) internal returns (InputParam memory) {
         return InputParam({
-            paramType: InputParamType.TARGET,
-            fetcherType: InputParamFetcherType.RAW_BYTES,
-            paramData: abi.encode(target),
-            constraints: emptyConstraints
+            paramType: InputParamType.TARGET, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(target), constraints: emptyConstraints
         });
     }
 
     function _createRawValueInputParam(uint256 value) internal returns (InputParam memory) {
         return InputParam({
-            paramType: InputParamType.VALUE,
-            fetcherType: InputParamFetcherType.RAW_BYTES,
-            paramData: abi.encode(value),
-            constraints: emptyConstraints
+            paramType: InputParamType.VALUE, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(value), constraints: emptyConstraints
         });
     }
 }

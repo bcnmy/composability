@@ -6,7 +6,6 @@ enum InputParamType {
     TARGET, // The target address
     VALUE, // The value
     CALL_DATA // The call data
-
 }
 
 // Parameter type for composition
@@ -14,22 +13,22 @@ enum InputParamFetcherType {
     RAW_BYTES, // Already encoded bytes
     STATIC_CALL, // Perform a static call
     BALANCE // Get the balance of an address
-
 }
 
 enum OutputParamFetcherType {
     EXEC_RESULT, // The return of the execution call
     STATIC_CALL // Call to some other function
-
 }
 
 // Constraint type for parameter validation
 enum ConstraintType {
-    EQ, // Equal to
-    GTE, // Greater than or equal to
-    LTE, // Less than or equal to
-    IN // In range
-
+    EQ, // Equal to (unsigned / bitwise)
+    GTE, // Greater than or equal to (unsigned)
+    LTE, // Less than or equal to (unsigned)
+    IN, // In range (unsigned)
+    GTE_SIGNED, // Greater than or equal to (signed int256)
+    LTE_SIGNED, // Less than or equal to (signed int256)
+    OR // At least one sub-constraint must pass; referenceData = abi.encode(Constraint[])
 }
 
 // Constraint for parameter validation
