@@ -24,7 +24,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
 
       - name: Install Node dependencies
-        run: npm ci
+        run: npm install --ignore-scripts
 
       - name: Show Forge version
         run: |
