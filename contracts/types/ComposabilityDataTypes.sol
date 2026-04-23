@@ -22,13 +22,13 @@ enum OutputParamFetcherType {
 
 // Constraint type for parameter validation
 enum ConstraintType {
-    EQ, // Equal to (unsigned / bitwise)
+    EQ, // Equal to (bitwise equality; suitable for signed, unsigned, addresses, bytes32)
     GTE, // Greater than or equal to (unsigned)
     LTE, // Less than or equal to (unsigned)
-    IN, // In range (unsigned)
+    IN, // In range [lower, upper] (bytes32 comparison; suitable for unsigned ranges and same-sign signed ranges)
     GTE_SIGNED, // Greater than or equal to (signed int256)
     LTE_SIGNED, // Less than or equal to (signed int256)
-    OR // At least one sub-constraint must pass; referenceData = abi.encode(Constraint[])
+    OR // At least one sub-constraint must pass; referenceData = abi.encode(Constraint[]); sub-constraints must be leaf types (no nested OR)
 }
 
 // Constraint for parameter validation
