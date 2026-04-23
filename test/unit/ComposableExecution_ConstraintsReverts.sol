@@ -77,10 +77,7 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
         // Prepare invalid input param - call should revert
         InputParam[] memory invalidInputParams = new InputParam[](3);
         invalidInputParams[0] = InputParam({
-            paramType: InputParamType.CALL_DATA,
-            fetcherType: InputParamFetcherType.RAW_BYTES,
-            paramData: abi.encode(42),
-            constraints: constraints
+            paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(42), constraints: constraints
         });
         invalidInputParams[1] = _createRawTargetInputParam(address(0));
         invalidInputParams[2] = _createRawValueInputParam(0);
@@ -88,10 +85,7 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
         // Prepare valid input param - call should succeed
         InputParam[] memory validInputParams = new InputParam[](3);
         validInputParams[0] = InputParam({
-            paramType: InputParamType.CALL_DATA,
-            fetcherType: InputParamFetcherType.RAW_BYTES,
-            paramData: abi.encode(43),
-            constraints: constraints
+            paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(43), constraints: constraints
         });
         validInputParams[1] = _createRawTargetInputParam(address(0));
         validInputParams[2] = _createRawValueInputParam(0);
@@ -296,10 +290,7 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
         // Prepare valid input param - call should succeed
         InputParam[] memory validInputParams = new InputParam[](3);
         validInputParams[0] = InputParam({
-            paramType: InputParamType.CALL_DATA,
-            fetcherType: InputParamFetcherType.RAW_BYTES,
-            paramData: abi.encode(42),
-            constraints: constraints
+            paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(42), constraints: constraints
         });
         validInputParams[1] = _createRawTargetInputParam(address(0));
         validInputParams[2] = _createRawValueInputParam(0);
@@ -360,8 +351,9 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
 
         bytes memory expectedRevertReason;
         if (address(account) == address(mockAccountFallback)) {
-            expectedRevertReason =
-                abi.encodeWithSelector(MockAccountFallback.FallbackFailed.selector, abi.encodePacked(ComposableExecutionLib.ComposableExecutionFailed.selector));
+            expectedRevertReason = abi.encodeWithSelector(
+                MockAccountFallback.FallbackFailed.selector, abi.encodePacked(ComposableExecutionLib.ComposableExecutionFailed.selector)
+            );
         } else {
             expectedRevertReason = abi.encodePacked(ComposableExecutionLib.ComposableExecutionFailed.selector);
         }
@@ -435,6 +427,579 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
         } else {
             vm.expectRevert(abi.encodeWithSelector(InvalidParameterEncoding.selector, "BALANCE fetcher type is not supported for TARGET param type"));
         }
+        IComposableExecution(address(account)).executeComposable(executions);
+
+        vm.stopPrank();
+    }
+
+    // =================================================================================
+    // ========================= SIGNED CONSTRAINT TESTS ==============================
+    // =================================================================================
+
+    function test_inputs_With_GteSigned_Constraints() public {
+        _inputParamUsingGteSignedConstraints(address(mockAccount), address(mockAccount));
+        _inputParamUsingGteSignedConstraints(address(mockAccountFallback), address(composabilityHandler));
+        _inputParamUsingGteSignedConstraints(address(mockAccountCaller), address(composabilityHandler));
+        _inputParamUsingGteSignedConstraints(address(mockAccountDelegateCaller), address(mockAccountDelegateCaller));
+    }
+
+    function test_inputs_With_LteSigned_Constraints() public {
+        _inputParamUsingLteSignedConstraints(address(mockAccount), address(mockAccount));
+        _inputParamUsingLteSignedConstraints(address(mockAccountFallback), address(composabilityHandler));
+        _inputParamUsingLteSignedConstraints(address(mockAccountCaller), address(composabilityHandler));
+        _inputParamUsingLteSignedConstraints(address(mockAccountDelegateCaller), address(mockAccountDelegateCaller));
+    }
+
+    function test_inputs_With_GteSigned_StaticCall_Constraints() public {
+        _inputParamUsingGteSignedConstraintsViaStaticCall(address(mockAccount), address(mockAccount));
+        _inputParamUsingGteSignedConstraintsViaStaticCall(address(mockAccountFallback), address(composabilityHandler));
+        _inputParamUsingGteSignedConstraintsViaStaticCall(address(mockAccountCaller), address(composabilityHandler));
+        _inputParamUsingGteSignedConstraintsViaStaticCall(address(mockAccountDelegateCaller), address(mockAccountDelegateCaller));
+    }
+
+    function test_inputs_With_Or_Constraints() public {
+        _inputParamUsingOrConstraints(address(mockAccount), address(mockAccount));
+        _inputParamUsingOrConstraints(address(mockAccountFallback), address(composabilityHandler));
+        _inputParamUsingOrConstraints(address(mockAccountCaller), address(composabilityHandler));
+        _inputParamUsingOrConstraints(address(mockAccountDelegateCaller), address(mockAccountDelegateCaller));
+    }
+
+    function test_inputs_With_Or_Signed_Constraints() public {
+        _inputParamUsingOrWithSignedConstraints(address(mockAccount), address(mockAccount));
+        _inputParamUsingOrWithSignedConstraints(address(mockAccountFallback), address(composabilityHandler));
+        _inputParamUsingOrWithSignedConstraints(address(mockAccountCaller), address(composabilityHandler));
+        _inputParamUsingOrWithSignedConstraints(address(mockAccountDelegateCaller), address(mockAccountDelegateCaller));
+    }
+
+    function test_Nested_Or_Reverts_With_InvalidConstraintType() public {
+        _nestedOrReverts(address(mockAccount), address(mockAccount));
+        _nestedOrReverts(address(mockAccountFallback), address(composabilityHandler));
+        _nestedOrReverts(address(mockAccountCaller), address(composabilityHandler));
+        _nestedOrReverts(address(mockAccountDelegateCaller), address(mockAccountDelegateCaller));
+    }
+
+    // -----------------------------------------------------------------------
+    // GTE_SIGNED: checks that int256(-5) is the lower bound.
+    // value = int256(-10) => fails (below bound)
+    // value = int256(-5)  => passes (equal to bound)
+    // value = int256(0)   => passes (positive is always above negative bound)
+    // -----------------------------------------------------------------------
+    function _inputParamUsingGteSignedConstraints(address account, address caller) internal {
+        // Reference: value must be >= int256(-5)
+        Constraint[] memory constraints = new Constraint[](1);
+        constraints[0] = Constraint({ constraintType: ConstraintType.GTE_SIGNED, referenceData: abi.encode(int256(-5)) });
+
+        vm.startPrank(ENTRYPOINT_V07_ADDRESS);
+
+        OutputParam[] memory outputParams = new OutputParam[](0);
+
+        // int256(-10) < int256(-5) => should revert
+        {
+            InputParam[] memory invalidInputParams = new InputParam[](3);
+            invalidInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(int256(-10)), constraints: constraints
+            });
+            invalidInputParams[1] = _createRawTargetInputParam(address(0));
+            invalidInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory failingExecutions = new ComposableExecution[](1);
+            failingExecutions[0] = ComposableExecution({ functionSig: "", inputParams: invalidInputParams, outputParams: outputParams });
+
+            bytes memory expectedRevert;
+            if (address(account) == address(mockAccountFallback)) {
+                expectedRevert = abi.encodeWithSelector(
+                    MockAccountFallback.FallbackFailed.selector,
+                    abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.GTE_SIGNED)
+                );
+            } else {
+                expectedRevert = abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.GTE_SIGNED);
+            }
+            vm.expectRevert(expectedRevert);
+            IComposableExecution(address(account)).executeComposable(failingExecutions);
+        }
+
+        // Demonstrate why GTE_SIGNED is needed: int256(-1) is encoded as 0xffff...ff, which as
+        // uint256 is type(uint256).max, so plain GTE incorrectly treats -1 as >= any positive value.
+        // GTE_SIGNED correctly identifies -1 < 0 and rejects it.
+        {
+            Constraint[] memory unsignedConstraints = new Constraint[](1);
+            // plain GTE: require value >= 0 (as raw bytes32)
+            unsignedConstraints[0] = Constraint({ constraintType: ConstraintType.GTE, referenceData: abi.encode(bytes32(uint256(0))) });
+
+            InputParam[] memory unsignedInputParams = new InputParam[](3);
+            unsignedInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA,
+                fetcherType: InputParamFetcherType.RAW_BYTES,
+                paramData: abi.encode(int256(-1)), // -1 as bytes32 = 0xffff...ff > 0 (unsigned)
+                constraints: unsignedConstraints
+            });
+            unsignedInputParams[1] = _createRawTargetInputParam(address(0));
+            unsignedInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory unsignedExecutions = new ComposableExecution[](1);
+            unsignedExecutions[0] = ComposableExecution({ functionSig: "", inputParams: unsignedInputParams, outputParams: outputParams });
+
+            // Unsigned GTE passes (wrongly treats -1 as >= 0 because bytes32(-1) is max uint256)
+            IComposableExecution(address(account)).executeComposable(unsignedExecutions);
+        }
+
+        // Verify GTE_SIGNED rejects -1 >= 0 correctly
+        {
+            Constraint[] memory signedZeroConstraints = new Constraint[](1);
+            signedZeroConstraints[0] = Constraint({ constraintType: ConstraintType.GTE_SIGNED, referenceData: abi.encode(int256(0)) });
+
+            InputParam[] memory signedZeroInputParams = new InputParam[](3);
+            signedZeroInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA,
+                fetcherType: InputParamFetcherType.RAW_BYTES,
+                paramData: abi.encode(int256(-1)),
+                constraints: signedZeroConstraints
+            });
+            signedZeroInputParams[1] = _createRawTargetInputParam(address(0));
+            signedZeroInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory signedZeroExecutions = new ComposableExecution[](1);
+            signedZeroExecutions[0] = ComposableExecution({ functionSig: "", inputParams: signedZeroInputParams, outputParams: outputParams });
+
+            bytes memory expectedRevert;
+            if (address(account) == address(mockAccountFallback)) {
+                expectedRevert = abi.encodeWithSelector(
+                    MockAccountFallback.FallbackFailed.selector,
+                    abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.GTE_SIGNED)
+                );
+            } else {
+                expectedRevert = abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.GTE_SIGNED);
+            }
+            vm.expectRevert(expectedRevert);
+            IComposableExecution(address(account)).executeComposable(signedZeroExecutions);
+        }
+
+        // int256(-5) >= int256(-5) => passes
+        {
+            InputParam[] memory validInputParams = new InputParam[](3);
+            validInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(int256(-5)), constraints: constraints
+            });
+            validInputParams[1] = _createRawTargetInputParam(address(0));
+            validInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory validExecutions = new ComposableExecution[](1);
+            validExecutions[0] = ComposableExecution({ functionSig: "", inputParams: validInputParams, outputParams: outputParams });
+            IComposableExecution(address(account)).executeComposable(validExecutions);
+        }
+
+        // int256(0) >= int256(-5) => passes (positive is always above negative)
+        {
+            InputParam[] memory positiveInputParams = new InputParam[](3);
+            positiveInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(int256(0)), constraints: constraints
+            });
+            positiveInputParams[1] = _createRawTargetInputParam(address(0));
+            positiveInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory positiveExecutions = new ComposableExecution[](1);
+            positiveExecutions[0] = ComposableExecution({ functionSig: "", inputParams: positiveInputParams, outputParams: outputParams });
+            IComposableExecution(address(account)).executeComposable(positiveExecutions);
+        }
+
+        vm.stopPrank();
+    }
+
+    // -----------------------------------------------------------------------
+    // LTE_SIGNED: checks that int256(-5) is the upper bound.
+    // value = int256(-3)  => fails (above bound)
+    // value = int256(-5)  => passes (equal to bound)
+    // value = int256(-10) => passes (below bound)
+    // value = int256(1)   => fails (positive above negative bound)
+    // -----------------------------------------------------------------------
+    function _inputParamUsingLteSignedConstraints(address account, address caller) internal {
+        // Reference: value must be <= int256(-5)
+        Constraint[] memory constraints = new Constraint[](1);
+        constraints[0] = Constraint({ constraintType: ConstraintType.LTE_SIGNED, referenceData: abi.encode(int256(-5)) });
+
+        vm.startPrank(ENTRYPOINT_V07_ADDRESS);
+
+        OutputParam[] memory outputParams = new OutputParam[](0);
+
+        // int256(-3) > int256(-5) => should revert
+        {
+            InputParam[] memory invalidInputParams = new InputParam[](3);
+            invalidInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(int256(-3)), constraints: constraints
+            });
+            invalidInputParams[1] = _createRawTargetInputParam(address(0));
+            invalidInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory failingExecutions = new ComposableExecution[](1);
+            failingExecutions[0] = ComposableExecution({ functionSig: "", inputParams: invalidInputParams, outputParams: outputParams });
+
+            bytes memory expectedRevert;
+            if (address(account) == address(mockAccountFallback)) {
+                expectedRevert = abi.encodeWithSelector(
+                    MockAccountFallback.FallbackFailed.selector,
+                    abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.LTE_SIGNED)
+                );
+            } else {
+                expectedRevert = abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.LTE_SIGNED);
+            }
+            vm.expectRevert(expectedRevert);
+            IComposableExecution(address(account)).executeComposable(failingExecutions);
+        }
+
+        // int256(1) > int256(-5) => should revert (positive is always above negative bound)
+        {
+            InputParam[] memory positiveInvalidInputParams = new InputParam[](3);
+            positiveInvalidInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(int256(1)), constraints: constraints
+            });
+            positiveInvalidInputParams[1] = _createRawTargetInputParam(address(0));
+            positiveInvalidInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory positiveFailingExecutions = new ComposableExecution[](1);
+            positiveFailingExecutions[0] = ComposableExecution({ functionSig: "", inputParams: positiveInvalidInputParams, outputParams: outputParams });
+
+            bytes memory expectedRevert;
+            if (address(account) == address(mockAccountFallback)) {
+                expectedRevert = abi.encodeWithSelector(
+                    MockAccountFallback.FallbackFailed.selector,
+                    abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.LTE_SIGNED)
+                );
+            } else {
+                expectedRevert = abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.LTE_SIGNED);
+            }
+            vm.expectRevert(expectedRevert);
+            IComposableExecution(address(account)).executeComposable(positiveFailingExecutions);
+        }
+
+        // int256(-5) <= int256(-5) => passes
+        {
+            InputParam[] memory validInputParams = new InputParam[](3);
+            validInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(int256(-5)), constraints: constraints
+            });
+            validInputParams[1] = _createRawTargetInputParam(address(0));
+            validInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory validExecutions = new ComposableExecution[](1);
+            validExecutions[0] = ComposableExecution({ functionSig: "", inputParams: validInputParams, outputParams: outputParams });
+            IComposableExecution(address(account)).executeComposable(validExecutions);
+        }
+
+        // int256(-10) <= int256(-5) => passes
+        {
+            InputParam[] memory belowInputParams = new InputParam[](3);
+            belowInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(int256(-10)), constraints: constraints
+            });
+            belowInputParams[1] = _createRawTargetInputParam(address(0));
+            belowInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory belowExecutions = new ComposableExecution[](1);
+            belowExecutions[0] = ComposableExecution({ functionSig: "", inputParams: belowInputParams, outputParams: outputParams });
+            IComposableExecution(address(account)).executeComposable(belowExecutions);
+        }
+
+        vm.stopPrank();
+    }
+
+    // -----------------------------------------------------------------------
+    // GTE_SIGNED via STATIC_CALL: the return value comes from dummyContract.getSignedValue()
+    // which returns int256(-42). Constraint: value must be >= int256(-50) (passes)
+    //                             and       value must be >= int256(-10) (fails)
+    // -----------------------------------------------------------------------
+    function _inputParamUsingGteSignedConstraintsViaStaticCall(address account, address caller) internal {
+        vm.startPrank(ENTRYPOINT_V07_ADDRESS);
+
+        OutputParam[] memory outputParams = new OutputParam[](0);
+
+        // getSignedValue() returns -42; require >= -50 => passes
+        {
+            Constraint[] memory passingConstraints = new Constraint[](1);
+            passingConstraints[0] = Constraint({ constraintType: ConstraintType.GTE_SIGNED, referenceData: abi.encode(int256(-50)) });
+
+            InputParam[] memory validInputParams = new InputParam[](3);
+            validInputParams[0] = _createRawTargetInputParam(address(0));
+            validInputParams[1] = _createRawValueInputParam(0);
+            validInputParams[2] = InputParam({
+                paramType: InputParamType.CALL_DATA,
+                fetcherType: InputParamFetcherType.STATIC_CALL,
+                paramData: abi.encode(address(dummyContract), abi.encodeWithSelector(DummyContract.getSignedValue.selector)),
+                constraints: passingConstraints
+            });
+
+            ComposableExecution[] memory validExecutions = new ComposableExecution[](1);
+            validExecutions[0] = ComposableExecution({ functionSig: "", inputParams: validInputParams, outputParams: outputParams });
+            IComposableExecution(address(account)).executeComposable(validExecutions);
+        }
+
+        // getSignedValue() returns -42; require >= -10 => fails (-42 < -10)
+        {
+            Constraint[] memory failingConstraints = new Constraint[](1);
+            failingConstraints[0] = Constraint({ constraintType: ConstraintType.GTE_SIGNED, referenceData: abi.encode(int256(-10)) });
+
+            InputParam[] memory invalidInputParams = new InputParam[](3);
+            invalidInputParams[0] = _createRawTargetInputParam(address(0));
+            invalidInputParams[1] = _createRawValueInputParam(0);
+            invalidInputParams[2] = InputParam({
+                paramType: InputParamType.CALL_DATA,
+                fetcherType: InputParamFetcherType.STATIC_CALL,
+                paramData: abi.encode(address(dummyContract), abi.encodeWithSelector(DummyContract.getSignedValue.selector)),
+                constraints: failingConstraints
+            });
+
+            ComposableExecution[] memory failingExecutions = new ComposableExecution[](1);
+            failingExecutions[0] = ComposableExecution({ functionSig: "", inputParams: invalidInputParams, outputParams: outputParams });
+
+            bytes memory expectedRevert;
+            if (address(account) == address(mockAccountFallback)) {
+                expectedRevert = abi.encodeWithSelector(
+                    MockAccountFallback.FallbackFailed.selector,
+                    abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.GTE_SIGNED)
+                );
+            } else {
+                expectedRevert = abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.GTE_SIGNED);
+            }
+            vm.expectRevert(expectedRevert);
+            IComposableExecution(address(account)).executeComposable(failingExecutions);
+        }
+
+        vm.stopPrank();
+    }
+
+    // -----------------------------------------------------------------------
+    // OR constraint: value must be == 0 OR >= 100 (i.e. "free or large enough")
+    // value = 0   => passes (EQ branch)
+    // value = 150 => passes (GTE branch)
+    // value = 50  => fails (neither branch)
+    // -----------------------------------------------------------------------
+    function _inputParamUsingOrConstraints(address account, address caller) internal {
+        Constraint[] memory subConstraints = new Constraint[](2);
+        subConstraints[0] = Constraint({ constraintType: ConstraintType.EQ, referenceData: abi.encode(bytes32(uint256(0))) });
+        subConstraints[1] = Constraint({ constraintType: ConstraintType.GTE, referenceData: abi.encode(bytes32(uint256(100))) });
+
+        Constraint[] memory constraints = new Constraint[](1);
+        constraints[0] = Constraint({ constraintType: ConstraintType.OR, referenceData: abi.encode(subConstraints) });
+
+        vm.startPrank(ENTRYPOINT_V07_ADDRESS);
+
+        OutputParam[] memory outputParams = new OutputParam[](0);
+
+        // value = 50: neither EQ(0) nor GTE(100) => should revert
+        {
+            InputParam[] memory invalidInputParams = new InputParam[](3);
+            invalidInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(uint256(50)), constraints: constraints
+            });
+            invalidInputParams[1] = _createRawTargetInputParam(address(0));
+            invalidInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory failingExecutions = new ComposableExecution[](1);
+            failingExecutions[0] = ComposableExecution({ functionSig: "", inputParams: invalidInputParams, outputParams: outputParams });
+
+            bytes memory expectedRevert;
+            if (address(account) == address(mockAccountFallback)) {
+                expectedRevert = abi.encodeWithSelector(
+                    MockAccountFallback.FallbackFailed.selector, abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.OR)
+                );
+            } else {
+                expectedRevert = abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.OR);
+            }
+            vm.expectRevert(expectedRevert);
+            IComposableExecution(address(account)).executeComposable(failingExecutions);
+        }
+
+        // value = 0: EQ(0) passes => OR passes
+        {
+            InputParam[] memory zeroInputParams = new InputParam[](3);
+            zeroInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(uint256(0)), constraints: constraints
+            });
+            zeroInputParams[1] = _createRawTargetInputParam(address(0));
+            zeroInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory zeroExecutions = new ComposableExecution[](1);
+            zeroExecutions[0] = ComposableExecution({ functionSig: "", inputParams: zeroInputParams, outputParams: outputParams });
+            IComposableExecution(address(account)).executeComposable(zeroExecutions);
+        }
+
+        // value = 150: GTE(100) passes => OR passes
+        {
+            InputParam[] memory largeInputParams = new InputParam[](3);
+            largeInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(uint256(150)), constraints: constraints
+            });
+            largeInputParams[1] = _createRawTargetInputParam(address(0));
+            largeInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory largeExecutions = new ComposableExecution[](1);
+            largeExecutions[0] = ComposableExecution({ functionSig: "", inputParams: largeInputParams, outputParams: outputParams });
+            IComposableExecution(address(account)).executeComposable(largeExecutions);
+        }
+
+        // value = 100: GTE(100) passes (boundary) => OR passes
+        {
+            InputParam[] memory boundaryInputParams = new InputParam[](3);
+            boundaryInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(uint256(100)), constraints: constraints
+            });
+            boundaryInputParams[1] = _createRawTargetInputParam(address(0));
+            boundaryInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory boundaryExecutions = new ComposableExecution[](1);
+            boundaryExecutions[0] = ComposableExecution({ functionSig: "", inputParams: boundaryInputParams, outputParams: outputParams });
+            IComposableExecution(address(account)).executeComposable(boundaryExecutions);
+        }
+
+        vm.stopPrank();
+    }
+
+    // -----------------------------------------------------------------------
+    // OR with signed sub-constraints: value must be LTE_SIGNED(-100) OR GTE_SIGNED(0)
+    // Useful for: "price delta must be at most -100 (big drop) or at least 0 (no loss)"
+    // value = int256(-50)  => fails (between -100 and 0, neither branch)
+    // value = int256(-100) => passes (LTE_SIGNED branch)
+    // value = int256(-200) => passes (LTE_SIGNED branch, further below)
+    // value = int256(0)    => passes (GTE_SIGNED branch)
+    // value = int256(10)   => passes (GTE_SIGNED branch)
+    // -----------------------------------------------------------------------
+    function _inputParamUsingOrWithSignedConstraints(address account, address caller) internal {
+        Constraint[] memory subConstraints = new Constraint[](2);
+        subConstraints[0] = Constraint({ constraintType: ConstraintType.LTE_SIGNED, referenceData: abi.encode(int256(-100)) });
+        subConstraints[1] = Constraint({ constraintType: ConstraintType.GTE_SIGNED, referenceData: abi.encode(int256(0)) });
+
+        Constraint[] memory constraints = new Constraint[](1);
+        constraints[0] = Constraint({ constraintType: ConstraintType.OR, referenceData: abi.encode(subConstraints) });
+
+        vm.startPrank(ENTRYPOINT_V07_ADDRESS);
+
+        OutputParam[] memory outputParams = new OutputParam[](0);
+
+        // value = int256(-50): -50 > -100 (LTE fails) and -50 < 0 (GTE fails) => OR fails
+        {
+            InputParam[] memory invalidInputParams = new InputParam[](3);
+            invalidInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(int256(-50)), constraints: constraints
+            });
+            invalidInputParams[1] = _createRawTargetInputParam(address(0));
+            invalidInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory failingExecutions = new ComposableExecution[](1);
+            failingExecutions[0] = ComposableExecution({ functionSig: "", inputParams: invalidInputParams, outputParams: outputParams });
+
+            bytes memory expectedRevert;
+            if (address(account) == address(mockAccountFallback)) {
+                expectedRevert = abi.encodeWithSelector(
+                    MockAccountFallback.FallbackFailed.selector, abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.OR)
+                );
+            } else {
+                expectedRevert = abi.encodeWithSelector(ComposableExecutionLib.ConstraintNotMet.selector, ConstraintType.OR);
+            }
+            vm.expectRevert(expectedRevert);
+            IComposableExecution(address(account)).executeComposable(failingExecutions);
+        }
+
+        // value = int256(-100): LTE_SIGNED(-100) passes => OR passes
+        {
+            InputParam[] memory lteInputParams = new InputParam[](3);
+            lteInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(int256(-100)), constraints: constraints
+            });
+            lteInputParams[1] = _createRawTargetInputParam(address(0));
+            lteInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory lteExecutions = new ComposableExecution[](1);
+            lteExecutions[0] = ComposableExecution({ functionSig: "", inputParams: lteInputParams, outputParams: outputParams });
+            IComposableExecution(address(account)).executeComposable(lteExecutions);
+        }
+
+        // value = int256(-200): LTE_SIGNED(-100) passes => OR passes
+        {
+            InputParam[] memory deepNegInputParams = new InputParam[](3);
+            deepNegInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(int256(-200)), constraints: constraints
+            });
+            deepNegInputParams[1] = _createRawTargetInputParam(address(0));
+            deepNegInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory deepNegExecutions = new ComposableExecution[](1);
+            deepNegExecutions[0] = ComposableExecution({ functionSig: "", inputParams: deepNegInputParams, outputParams: outputParams });
+            IComposableExecution(address(account)).executeComposable(deepNegExecutions);
+        }
+
+        // value = int256(0): GTE_SIGNED(0) passes => OR passes
+        {
+            InputParam[] memory zeroInputParams = new InputParam[](3);
+            zeroInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(int256(0)), constraints: constraints
+            });
+            zeroInputParams[1] = _createRawTargetInputParam(address(0));
+            zeroInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory zeroExecutions = new ComposableExecution[](1);
+            zeroExecutions[0] = ComposableExecution({ functionSig: "", inputParams: zeroInputParams, outputParams: outputParams });
+            IComposableExecution(address(account)).executeComposable(zeroExecutions);
+        }
+
+        // value = int256(10): GTE_SIGNED(0) passes => OR passes
+        {
+            InputParam[] memory posInputParams = new InputParam[](3);
+            posInputParams[0] = InputParam({
+                paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(int256(10)), constraints: constraints
+            });
+            posInputParams[1] = _createRawTargetInputParam(address(0));
+            posInputParams[2] = _createRawValueInputParam(0);
+
+            ComposableExecution[] memory posExecutions = new ComposableExecution[](1);
+            posExecutions[0] = ComposableExecution({ functionSig: "", inputParams: posInputParams, outputParams: outputParams });
+            IComposableExecution(address(account)).executeComposable(posExecutions);
+        }
+
+        vm.stopPrank();
+    }
+
+    // -----------------------------------------------------------------------
+    // Nested OR is intentionally rejected to keep the signed payload flat and
+    // easy to display. An OR whose sub-array contains another OR must revert
+    // with InvalidConstraintType when _checkConstraint encounters the inner OR.
+    // -----------------------------------------------------------------------
+    function _nestedOrReverts(address account, address caller) internal {
+        // Inner OR with two leaf alternatives
+        Constraint[] memory innerSubs = new Constraint[](2);
+        innerSubs[0] = Constraint({ constraintType: ConstraintType.EQ, referenceData: abi.encode(bytes32(uint256(1))) });
+        innerSubs[1] = Constraint({ constraintType: ConstraintType.EQ, referenceData: abi.encode(bytes32(uint256(2))) });
+
+        // Outer OR whose second alternative is the inner OR (nesting)
+        Constraint[] memory outerSubs = new Constraint[](2);
+        outerSubs[0] = Constraint({ constraintType: ConstraintType.EQ, referenceData: abi.encode(bytes32(uint256(0))) });
+        outerSubs[1] = Constraint({ constraintType: ConstraintType.OR, referenceData: abi.encode(innerSubs) });
+
+        Constraint[] memory constraints = new Constraint[](1);
+        constraints[0] = Constraint({ constraintType: ConstraintType.OR, referenceData: abi.encode(outerSubs) });
+
+        vm.startPrank(ENTRYPOINT_V07_ADDRESS);
+
+        // value = 7: outer OR's first alternative (EQ(0)) fails for value=7, so it reaches the
+        // nested inner OR, which triggers InvalidConstraintType inside _checkConstraint.
+        InputParam[] memory inputParams = new InputParam[](3);
+        inputParams[0] = InputParam({
+            paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(uint256(7)), constraints: constraints
+        });
+        inputParams[1] = _createRawTargetInputParam(address(0));
+        inputParams[2] = _createRawValueInputParam(0);
+
+        OutputParam[] memory outputParams = new OutputParam[](0);
+        ComposableExecution[] memory executions = new ComposableExecution[](1);
+        executions[0] = ComposableExecution({ functionSig: "", inputParams: inputParams, outputParams: outputParams });
+
+        bytes memory expectedRevert;
+        if (address(account) == address(mockAccountFallback)) {
+            expectedRevert = abi.encodeWithSelector(
+                MockAccountFallback.FallbackFailed.selector, abi.encodeWithSelector(ComposableExecutionLib.InvalidConstraintType.selector)
+            );
+        } else {
+            expectedRevert = abi.encodeWithSelector(ComposableExecutionLib.InvalidConstraintType.selector);
+        }
+        vm.expectRevert(expectedRevert);
         IComposableExecution(address(account)).executeComposable(executions);
 
         vm.stopPrank();

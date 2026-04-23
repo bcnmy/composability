@@ -112,7 +112,7 @@ contract ComposableExecutionTestSimpleCases is ComposabilityTestBase {
             functionSig: DummyContract.A.selector,
             inputParams: inputParamsA, // TARGET and VALUE parameters only
             outputParams: outputParamsA // store output of the function A() to the storage
-         });
+        });
 
         // Call function A
         IComposableExecution(address(account)).executeComposable(executions);
@@ -164,10 +164,7 @@ contract ComposableExecutionTestSimpleCases is ComposabilityTestBase {
         InputParam[] memory inputParams = new InputParam[](3);
         // call data
         inputParams[0] = InputParam({
-            paramType: InputParamType.CALL_DATA,
-            fetcherType: InputParamFetcherType.RAW_BYTES,
-            paramData: abi.encode(1),
-            constraints: emptyConstraints
+            paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(1), constraints: emptyConstraints
         });
 
         inputParams[1] = _createRawTargetInputParam(address(dummyContract));
@@ -235,16 +232,10 @@ contract ComposableExecutionTestSimpleCases is ComposabilityTestBase {
         inputParams_execution1[0] = _createRawTargetInputParam(address(dummyContract));
         inputParams_execution1[1] = _createRawValueInputParam(valueToSend);
         inputParams_execution1[2] = InputParam({
-            paramType: InputParamType.CALL_DATA,
-            fetcherType: InputParamFetcherType.RAW_BYTES,
-            paramData: abi.encode(input1),
-            constraints: emptyConstraints
+            paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(input1), constraints: emptyConstraints
         });
         inputParams_execution1[3] = InputParam({
-            paramType: InputParamType.CALL_DATA,
-            fetcherType: InputParamFetcherType.RAW_BYTES,
-            paramData: abi.encode(input2),
-            constraints: emptyConstraints
+            paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(input2), constraints: emptyConstraints
         });
 
         OutputParam[] memory outputParams_execution1 = new OutputParam[](2);
@@ -404,10 +395,7 @@ contract ComposableExecutionTestSimpleCases is ComposabilityTestBase {
         });
         inputParams[1] = _createRawValueInputParam(0);
         inputParams[2] = InputParam({
-            paramType: InputParamType.CALL_DATA,
-            fetcherType: InputParamFetcherType.RAW_BYTES,
-            paramData: abi.encode(uintToEmit),
-            constraints: emptyConstraints
+            paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(uintToEmit), constraints: emptyConstraints
         });
 
         OutputParam[] memory outputParams = new OutputParam[](0);
