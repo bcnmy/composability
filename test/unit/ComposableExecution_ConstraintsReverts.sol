@@ -471,6 +471,13 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
         _inputParamUsingOrWithSignedConstraints(address(mockAccountDelegateCaller), address(mockAccountDelegateCaller));
     }
 
+    function test_Nested_Or_Reverts_With_InvalidConstraintType() public {
+        _nestedOrReverts(address(mockAccount), address(mockAccount));
+        _nestedOrReverts(address(mockAccountFallback), address(composabilityHandler));
+        _nestedOrReverts(address(mockAccountCaller), address(composabilityHandler));
+        _nestedOrReverts(address(mockAccountDelegateCaller), address(mockAccountDelegateCaller));
+    }
+
     // -----------------------------------------------------------------------
     // GTE_SIGNED: checks that int256(-5) is the lower bound.
     // value = int256(-10) => fails (below bound)
@@ -946,6 +953,54 @@ contract ComposableExecutionTestConstraintsAndReverts is ComposabilityTestBase {
             posExecutions[0] = ComposableExecution({ functionSig: "", inputParams: posInputParams, outputParams: outputParams });
             IComposableExecution(address(account)).executeComposable(posExecutions);
         }
+
+        vm.stopPrank();
+    }
+
+    // -----------------------------------------------------------------------
+    // Nested OR is intentionally rejected to keep the signed payload flat and
+    // easy to display. An OR whose sub-array contains another OR must revert
+    // with InvalidConstraintType when _checkConstraint encounters the inner OR.
+    // -----------------------------------------------------------------------
+    function _nestedOrReverts(address account, address caller) internal {
+        // Inner OR with two leaf alternatives
+        Constraint[] memory innerSubs = new Constraint[](2);
+        innerSubs[0] = Constraint({ constraintType: ConstraintType.EQ, referenceData: abi.encode(bytes32(uint256(1))) });
+        innerSubs[1] = Constraint({ constraintType: ConstraintType.EQ, referenceData: abi.encode(bytes32(uint256(2))) });
+
+        // Outer OR whose second alternative is the inner OR (nesting)
+        Constraint[] memory outerSubs = new Constraint[](2);
+        outerSubs[0] = Constraint({ constraintType: ConstraintType.EQ, referenceData: abi.encode(bytes32(uint256(0))) });
+        outerSubs[1] = Constraint({ constraintType: ConstraintType.OR, referenceData: abi.encode(innerSubs) });
+
+        Constraint[] memory constraints = new Constraint[](1);
+        constraints[0] = Constraint({ constraintType: ConstraintType.OR, referenceData: abi.encode(outerSubs) });
+
+        vm.startPrank(ENTRYPOINT_V07_ADDRESS);
+
+        // value = 7: outer OR's first alternative (EQ(0)) fails for value=7, so it reaches the
+        // nested inner OR, which triggers InvalidConstraintType inside _checkConstraint.
+        InputParam[] memory inputParams = new InputParam[](3);
+        inputParams[0] = InputParam({
+            paramType: InputParamType.CALL_DATA, fetcherType: InputParamFetcherType.RAW_BYTES, paramData: abi.encode(uint256(7)), constraints: constraints
+        });
+        inputParams[1] = _createRawTargetInputParam(address(0));
+        inputParams[2] = _createRawValueInputParam(0);
+
+        OutputParam[] memory outputParams = new OutputParam[](0);
+        ComposableExecution[] memory executions = new ComposableExecution[](1);
+        executions[0] = ComposableExecution({ functionSig: "", inputParams: inputParams, outputParams: outputParams });
+
+        bytes memory expectedRevert;
+        if (address(account) == address(mockAccountFallback)) {
+            expectedRevert = abi.encodeWithSelector(
+                MockAccountFallback.FallbackFailed.selector, abi.encodeWithSelector(ComposableExecutionLib.InvalidConstraintType.selector)
+            );
+        } else {
+            expectedRevert = abi.encodeWithSelector(ComposableExecutionLib.InvalidConstraintType.selector);
+        }
+        vm.expectRevert(expectedRevert);
+        IComposableExecution(address(account)).executeComposable(executions);
 
         vm.stopPrank();
     }

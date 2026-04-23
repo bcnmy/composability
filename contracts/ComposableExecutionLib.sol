@@ -205,7 +205,7 @@ library ComposableExecutionLib {
                         ++j;
                     }
                 }
-                if (!anyMet) revert ConstraintNotMet(ConstraintType.OR);
+                if (!anyMet) revert ConstraintNotMet(c.constraintType);
             } else {
                 if (!_checkConstraint(value, c)) revert ConstraintNotMet(c.constraintType);
             }
