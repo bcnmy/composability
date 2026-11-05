@@ -172,26 +172,44 @@ library ComposableExecutionLib {
 
     /// @dev Validate the constraints => compare the value with the reference data
     function _validateConstraints(bytes memory rawValue, Constraint[] calldata constraints) private pure {
-        if (constraints.length > 0) {
-            for (uint256 i; i < constraints.length; i++) {
-                Constraint memory constraint = constraints[i];
+        uint256 numConstraints = constraints.length;
+        if (numConstraints == 0) return;
+
+        require(rawValue.length >= 32, InvalidParameterEncoding("Value too short for constraint validation"));
+        uint256 numWords = rawValue.length / 32;
+
+        if (numWords == 1) {
+            bytes32 returnValue;
+            assembly {
+                returnValue := mload(add(rawValue, 0x20))
+            }
+            for (uint256 i; i < numConstraints; i++) {
+                _checkConstraint(returnValue, constraints[i]);
+            }
+        } else {
+            require(numConstraints <= numWords, InvalidParameterEncoding("Constraints exceed return values"));
+            for (uint256 i; i < numConstraints; i++) {
                 bytes32 returnValue;
                 assembly {
                     returnValue := mload(add(rawValue, add(0x20, mul(i, 0x20))))
                 }
-                if (constraint.constraintType == ConstraintType.EQ) {
-                    require(returnValue == bytes32(constraint.referenceData), ConstraintNotMet(ConstraintType.EQ));
-                } else if (constraint.constraintType == ConstraintType.GTE) {
-                    require(returnValue >= bytes32(constraint.referenceData), ConstraintNotMet(ConstraintType.GTE));
-                } else if (constraint.constraintType == ConstraintType.LTE) {
-                    require(returnValue <= bytes32(constraint.referenceData), ConstraintNotMet(ConstraintType.LTE));
-                } else if (constraint.constraintType == ConstraintType.IN) {
-                    (bytes32 lowerBound, bytes32 upperBound) = abi.decode(constraint.referenceData, (bytes32, bytes32));
-                    require(returnValue >= lowerBound && returnValue <= upperBound, ConstraintNotMet(ConstraintType.IN));
-                } else {
-                    revert InvalidConstraintType();
-                }
+                _checkConstraint(returnValue, constraints[i]);
             }
+        }
+    }
+
+    function _checkConstraint(bytes32 returnValue, Constraint memory constraint) private pure {
+        if (constraint.constraintType == ConstraintType.EQ) {
+            require(returnValue == bytes32(constraint.referenceData), ConstraintNotMet(ConstraintType.EQ));
+        } else if (constraint.constraintType == ConstraintType.GTE) {
+            require(returnValue >= bytes32(constraint.referenceData), ConstraintNotMet(ConstraintType.GTE));
+        } else if (constraint.constraintType == ConstraintType.LTE) {
+            require(returnValue <= bytes32(constraint.referenceData), ConstraintNotMet(ConstraintType.LTE));
+        } else if (constraint.constraintType == ConstraintType.IN) {
+            (bytes32 lowerBound, bytes32 upperBound) = abi.decode(constraint.referenceData, (bytes32, bytes32));
+            require(returnValue >= lowerBound && returnValue <= upperBound, ConstraintNotMet(ConstraintType.IN));
+        } else {
+            revert InvalidConstraintType();
         }
     }
 
